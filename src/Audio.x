@@ -116,6 +116,8 @@ static BOOL RTIsPlaybackUnit(AudioUnit unit, AudioUnitPropertyID property,
 
 %group RTAudioHooks
 %hookf(OSStatus, AudioUnitSetProperty, AudioUnit unit, AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, const void *data, UInt32 size) {
+    if (!atomic_load(&RTEnabled) || !atomic_load(&RTAudio))
+        return %orig(unit, property, scope, element, data, size);
     if (!RTIsPlaybackUnit(unit, property, scope, element) || !data ||
         size != sizeof(AURenderCallbackStruct)) return %orig(unit, property, scope, element, data, size);
     AURenderCallbackStruct callback = *(const AURenderCallbackStruct *)data;
@@ -154,7 +156,7 @@ static BOOL RTIsPlaybackUnit(AudioUnit unit, AudioUnitPropertyID property,
 }
 
 %hookf(OSStatus, AudioOutputUnitStart, AudioUnit unit) {
-    RTUpdateSession();
+    if (atomic_load(&RTEnabled) && atomic_load(&RTAudio)) RTUpdateSession();
     for (unsigned i = 0; i < RTCount(); i++) {
         if (atomic_load(&RTCallbacks[i].published) && RTCallbacks[i].unit == unit &&
             atomic_load(&RTCallbacks[i].active)) {
@@ -195,9 +197,25 @@ static BOOL RTIsPlaybackUnit(AudioUnit unit, AudioUnitPropertyID property,
 }
 %end
 
+static void RTInstallAudioIfNeeded(void) {
+    if (!atomic_load(&RTEnabled) || !atomic_load(&RTAudio)) return;
+    RTUpdateSession();
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        [NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionRouteChangeNotification
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+                if (atomic_load(&RTEnabled) && atomic_load(&RTAudio)) RTUpdateSession();
+            }];
+        %init(RTAudioHooks);
+    });
+}
+
 static void RTAudioSettingsChanged(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object, CFDictionaryRef info) {
-    RTLoadSettings();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        RTLoadSettings();
+        RTInstallAudioIfNeeded();
+    });
 }
 
 %ctor {
@@ -210,12 +228,9 @@ static void RTAudioSettingsChanged(CFNotificationCenterRef center, void *observe
             [bundle isEqualToString:@"com.apple.camera"] ||
             [bundle isEqualToString:@"com.apple.VoiceMemos"]) return;
         RTLoadSettings();
-        RTUpdateSession();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTAudioSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
-        [NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionRouteChangeNotification
-            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) { RTUpdateSession(); }];
-        %init(RTAudioHooks);
+        RTInstallAudioIfNeeded();
     }
 }

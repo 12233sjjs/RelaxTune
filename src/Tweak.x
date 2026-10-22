@@ -12,6 +12,7 @@ static int RTLockToken = -1;
 static BOOL RTLocked;
 static BOOL RTOwnsPower;
 static BOOL RTOverrideWhileLocked;
+static BOOL RTManagesPower;
 static __thread unsigned RTAnimationDepth;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 
@@ -65,7 +66,7 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
                                CFStringRef name, const void *object, CFDictionaryRef info) {
     dispatch_async(dispatch_get_main_queue(), ^{
         RTLoadSettings();
-        RTApplyPower();
+        if (RTManagesPower) RTApplyPower();
     });
 }
 
@@ -172,12 +173,12 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
 %ctor {
     @autoreleasepool {
         if (!RTIsApp()) return;
+        RTManagesPower = [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
-        BOOL springboard = [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
-        if (springboard) {
+        if (RTManagesPower) {
             %init(RTSpringPower);
             if (NSClassFromString(@"SBFFluidBehaviorSettings")) {
                 %init(RTSpringAnimations);

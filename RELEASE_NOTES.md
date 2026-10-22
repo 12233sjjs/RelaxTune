@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Battery overhead update in 0.1.4:
+
+- Install audio hooks and route monitoring only after the EQ is enabled.
+- Do not wrap new audio callbacks while the EQ or master switch is off.
+- Run power-mode checks only in SpringBoard when preferences change.
+- Keep ownership-aware lock-screen low-power mode and unlock/charging restoration.
+- Enabling EQ for an already-playing app may require restarting that app.
+- No device battery-life improvement has been measured.
+
 Display name update in 0.1.3:
 
 - Rename the package and Settings interface to cc优化系统.
