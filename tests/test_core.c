@@ -1,0 +1,86 @@
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include "DSP.h"
+#include "PowerPolicy.h"
+#include "Animation.h"
+
+static void testPower(void) {
+    assert(RTPowerDecision(true, true, false, false, false) == RTEnablePower);
+    assert(RTPowerDecision(true, true, false, true, false) == RTNoChange);
+    assert(RTPowerDecision(true, false, false, true, false) == RTNoChange);
+    assert(RTPowerDecision(true, false, false, true, true) == RTRestorePower);
+    assert(RTPowerDecision(true, true, true, true, true) == RTRestorePower);
+    assert(RTPowerDecision(false, true, false, true, true) == RTRestorePower);
+    assert(RTPowerDecision(true, true, false, false, true) == RTForgetOwnership);
+    assert(RTPowerDecision(true, true, false, true, true) == RTNoChange);
+    assert(RTPowerDecision(true, true, true, false, false) == RTNoChange);
+    assert(RTPowerDecision(true, false, false, false, false) == RTNoChange);
+}
+
+static void testAnimation(void) {
+    for (unsigned i = 0; i <= 100; i++) {
+        double value = i / 10.0;
+        assert(fabs(RTClampFactor(value) - value) < 1e-12);
+        assert(fabs(RTScaledDuration(0.5, value) - 0.5 * value) < 1e-12);
+    }
+    assert(RTClampFactor(-1.0) == 0.0);
+    assert(RTClampFactor(11.0) == 10.0);
+    assert(RTClampFactor(NAN) == 0.9);
+    assert(RTClampFactor(INFINITY) == 0.9);
+    assert(RTClampFactor(0.91) == 0.9);
+    assert(RTClampFactor(0.99) == 1.0);
+    assert(RTScaledDuration(5.0, 0.0) == 5.0);
+    assert(RTScaledDuration(0.05, 0.0) == 0.05);
+    assert(RTScaledDuration(0.5, 0.0) == 0.0);
+}
+
+static double gain(double rate, double frequency) {
+    RTEqualizer eq;
+    assert(RTEQInit(&eq, rate));
+    double sumIn = 0.0, sumOut = 0.0;
+    for (unsigned i = 0; i < (unsigned)rate * 2; i++) {
+        float input = (float)(0.25 * sin(6.283185307179586 * frequency * i / rate));
+        float output = RTEQSample(&eq, 0, input);
+        assert(isfinite(output));
+        assert(fabsf(output) <= 1.0f);
+        assert(RTEQSample(&eq, 1, 0.0f) == 0.0f);
+        if (i > rate) {
+            sumIn += input * input;
+            sumOut += output * output;
+        }
+    }
+    return sqrt(sumOut / sumIn);
+}
+
+static void testDSP(void) {
+    RTEqualizer eq;
+    assert(!RTEQInit(&eq, NAN));
+    assert(!RTEQInit(&eq, 8000));
+    for (unsigned i = 0; i < 2; i++) {
+        double rate = i == 0 ? 44100.0 : 48000.0;
+        double bass = gain(rate, 100.0);
+        double middle = gain(rate, 1000.0);
+        double treble = gain(rate, 4000.0);
+        assert(bass > middle * 1.15 && bass < middle * 1.35);
+        assert(treble > middle * 1.05 && treble < middle * 1.20);
+        assert(RTEQInit(&eq, rate));
+        for (unsigned n = 0; n < 100000; n++) {
+            float output = RTEQSample(&eq, 0, n & 1 ? 1.0f : -1.0f);
+            assert(isfinite(output) && fabsf(output) <= 1.0f);
+        }
+        assert(RTEQSample(&eq, 0, NAN) == 0.0f);
+        assert(RTEQSample(&eq, 0, INFINITY) == 0.0f);
+        RTEQReset(&eq);
+        assert(RTEQSample(&eq, 0, 0.0f) == 0.0f);
+        assert(RTEQSample(&eq, 2, 0.5f) == 0.5f);
+    }
+}
+
+int main(void) {
+    testPower();
+    testAnimation();
+    testDSP();
+    puts("PASS: power ownership, animation 0..10/0.1, DSP response/stereo/headroom/reset");
+    return 0;
+}

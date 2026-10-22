@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>title</key><string>RelaxTune</string>
+<key>items</key><array>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>RelaxTune</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>总开关</string>
+        <key>key</key><string>Enabled</string><key>default</key><true/></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>动画</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>调整动画</string>
+        <key>key</key><string>Animations</string><key>default</key><true/></dict>
+    <dict><key>cell</key><string>PSStaticTextCell</string><key>cellClass</key><string>RTFactorCell</string>
+        <key>label</key><string>动画时长比例</string><key>id</key><string>AnimationFactor</string></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>网络与电池</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>等待网络恢复</string>
+        <key>key</key><string>Network</string><key>default</key><true/></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>锁屏省电</string>
+        <key>key</key><string>LowPower</string><key>default</key><true/></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>音效</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>播放均衡器（实验）</string>
+        <key>key</key><string>Audio</string><key>default</key><false/></dict>
+</array></dict></plist>

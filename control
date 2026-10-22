@@ -1,0 +1,9 @@
+Package: com.12233sjjs.relaxtune
+Name: RelaxTune
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Mild animations, screen-off low power, connection waiting and experimental playback EQ for Relaxin.
+Maintainer: 12233sjjs
+Author: 12233sjjs
+Section: Tweaks
+Depends: firmware (>= 16.0), firmware (<< 17.0), mobilesubstrate, preferenceloader
