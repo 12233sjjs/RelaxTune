@@ -20,6 +20,7 @@ jobs:
           ./work/test_core
       - name: Validate property lists and settings
         run: |
+          python3 tests/test_preferences.py
           python3 - <<'PY'
           import pathlib, plistlib
           for path in pathlib.Path(".").rglob("*.plist"):
@@ -61,6 +62,7 @@ jobs:
         run: |
           mkdir -p work/extracted
           dpkg-deb -x packages/*.deb work/extracted
+          python3 tests/test_preferences.py work/extracted
           for name in RelaxTune RelaxTuneAudio; do
             path="$(find work/extracted -name "$name.dylib" -print -quit)"
             test -n "$path"

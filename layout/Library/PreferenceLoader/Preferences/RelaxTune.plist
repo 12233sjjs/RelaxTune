@@ -5,4 +5,5 @@
     <key>cell</key><string>PSLinkCell</string>
     <key>label</key><string>RelaxTune</string>
     <key>detail</key><string>RTRootController</string>
+    <key>isController</key><true/>
 </dict></dict></plist>
