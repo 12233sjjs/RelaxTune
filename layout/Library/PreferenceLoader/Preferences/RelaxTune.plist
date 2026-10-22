@@ -6,4 +6,5 @@
     <key>label</key><string>RelaxTune</string>
     <key>detail</key><string>RTRootController</string>
     <key>isController</key><true/>
+    <key>icon</key><string>icon.png</string>
 </dict></dict></plist>

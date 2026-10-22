@@ -19,8 +19,8 @@ static void testPower(void) {
 }
 
 static void testAnimation(void) {
-    for (unsigned i = 0; i <= 100; i++) {
-        double value = i / 10.0;
+    for (unsigned i = 0; i <= 1000; i++) {
+        double value = i / 100.0;
         assert(fabs(RTClampFactor(value) - value) < 1e-12);
         assert(fabs(RTScaledDuration(0.5, value) - 0.5 * value) < 1e-12);
     }
@@ -28,8 +28,9 @@ static void testAnimation(void) {
     assert(RTClampFactor(11.0) == 10.0);
     assert(RTClampFactor(NAN) == 0.9);
     assert(RTClampFactor(INFINITY) == 0.9);
-    assert(RTClampFactor(0.91) == 0.9);
-    assert(RTClampFactor(0.99) == 1.0);
+    assert(RTClampFactor(0.914) == 0.91);
+    assert(RTClampFactor(0.916) == 0.92);
+    assert(RTClampFactor(9.999) == 10.0);
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
@@ -81,6 +82,6 @@ int main(void) {
     testPower();
     testAnimation();
     testDSP();
-    puts("PASS: power ownership, animation 0..10/0.1, DSP response/stereo/headroom/reset");
+    puts("PASS: power ownership, animation 0..10/0.01, DSP response/stereo/headroom/reset");
     return 0;
 }

@@ -31,7 +31,7 @@ static void RTWritePreference(NSString *key, id value) {
         _factorStepper = [[UIStepper alloc] init];
         _factorStepper.minimumValue = 0.0;
         _factorStepper.maximumValue = 10.0;
-        _factorStepper.stepValue = 0.1;
+        _factorStepper.stepValue = 0.01;
         _factorStepper.wraps = NO;
         _factorStepper.accessibilityLabel = @"Animation duration multiplier";
         id saved = RTReadPreference(@"AnimationFactor");
@@ -46,7 +46,7 @@ static void RTWritePreference(NSString *key, id value) {
 }
 - (void)updateLabel {
     self.textLabel.text = @"动画时长比例";
-    self.detailTextLabel.text = [NSString stringWithFormat:@"%.1f ×", self.factorStepper.value];
+    self.detailTextLabel.text = [NSString stringWithFormat:@"%.2f ×", self.factorStepper.value];
 }
 - (void)factorChanged:(UIStepper *)stepper {
     stepper.value = RTClampFactor(stepper.value);

@@ -1,13 +1,19 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
-Fixes for the missing Settings entry in 0.1.0:
+Settings icon and animation precision update in 0.1.2:
+
+- Use the supplied cat silhouette with a transparent background, without the outer circle.
+- Include standard, 2x and 3x Settings icons.
+- Adjust animation multiplier in 0.01 steps and display two decimal places.
+
+Includes the fixes for the missing Settings entry in 0.1.0:
 
 - Add `isController = true` to the PreferenceLoader entry, matching the Theos preference-bundle template.
 - Add the preference domain to each switch definition.
 - Validate controller metadata, switch definitions and installed bundle paths in both packages.
 - After upgrading, reload SpringBoard and fully reopen Settings.
 
-- Animation toggle and duration multiplier 0.0 through 10.0 in 0.1 steps; default 0.9.
+- Animation toggle and duration multiplier 0.00 through 10.00 in 0.01 steps; default 0.90.
 - Screen-off low-power mode with ownership-aware restoration.
 - Waiting for connectivity on new default/ephemeral URLSession configurations.
 - Experimental RemoteIO playback EQ, disabled by default.
