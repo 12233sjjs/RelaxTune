@@ -1,5 +1,10 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Display name update in 0.1.3:
+
+- Rename the package and Settings interface to cc优化系统.
+- Preserve the package identifier and preference domain for in-place upgrades.
+
 Settings icon and animation precision update in 0.1.2:
 
 - Use the supplied cat silhouette with a transparent background, without the outer circle.

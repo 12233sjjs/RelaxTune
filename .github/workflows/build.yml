@@ -107,5 +107,5 @@ jobs:
         run: |
           version="$(sed -n 's/^Version: //p' control)"
           gh release create "v$version" artifacts/* --target "$GITHUB_SHA" \
-            --title "RelaxTune $version (device testing required)" \
+            --title "cc优化系统 $version (device testing required)" \
             --notes-file RELEASE_NOTES.md --prerelease

@@ -3,7 +3,7 @@
 <plist version="1.0"><dict><key>entry</key><dict>
     <key>bundle</key><string>RelaxTunePrefs</string>
     <key>cell</key><string>PSLinkCell</string>
-    <key>label</key><string>RelaxTune</string>
+    <key>label</key><string>cc优化系统</string>
     <key>detail</key><string>RTRootController</string>
     <key>isController</key><true/>
     <key>icon</key><string>icon.png</string>

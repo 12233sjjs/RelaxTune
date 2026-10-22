@@ -1,4 +1,4 @@
-# RelaxTune
+# cc优化系统
 
 为 iPhone 13 Pro / iOS 16.6.1 / Relaxin v0.5.6 制作的实验性插件。
 提供标准 rootless 和 RootHide 两种包。Relaxin 上游明确采用 RootHide 架构，
@@ -48,7 +48,7 @@ AVPlayer、AudioQueue、音频单元图连接、系统音效、DRM/卸载渲染�
 - Relaxin / RootHide：文件名含 `iphoneos-arm64e`，按包管理器支持情况安装。
   这里的包架构名称不能用来判断手机 CPU 架构。
 - 依赖 PreferenceLoader 和兼容的插件注入环境。
-- 安装后重新载入 SpringBoard，在“设置 → RelaxTune”调整。
+- 安装后重新载入 SpringBoard，在“设置 → cc优化系统”调整。
 - 如 Relaxin 要求对目标 App 单独开启注入，需在其管理工具中开启后重启目标 App。
 
 没有连接目标手机进行安装或运行验证。编译通过不等于设备兼容或收益已验证。
