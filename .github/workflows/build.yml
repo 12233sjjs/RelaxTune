@@ -49,6 +49,11 @@ jobs:
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           mkdir -p "$THEOS/sdks"
           ln -s "$sdk" "$THEOS/sdks/$(basename "$sdk")"
+          mkdir -p work/frameworks/Preferences.framework
+          curl -fL --retry 3 \
+            https://raw.githubusercontent.com/theos/sdks/0222fd5413cf4b9af096f37b4621afa2688572f7/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd \
+            -o work/frameworks/Preferences.framework/Preferences.tbd
+          echo "9daceaff6cf94346594a12f9ef9c2ea23de15475b516f9e33c20871a018c098b  work/frameworks/Preferences.framework/Preferences.tbd" | shasum -a 256 -c -
       - name: Build ${{ matrix.scheme }}
         run: |
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=${{ matrix.scheme }} -j2

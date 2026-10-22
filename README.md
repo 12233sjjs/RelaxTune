@@ -58,7 +58,9 @@ AVPlayer、AudioQueue、音频单元图连接、系统音效、DRM/卸载渲染�
 ## 构建
 
 依赖 Xcode iPhoneOS SDK、RootHide Theos、ldid、dpkg。
-CI 固定 Theos 及其子模块版本，构建 arm64 / arm64e 通用二进制，两种格式分别打包。
+CI 固定 Theos 及其子模块版本，并从 Theos iOS 16.5 SDK 下载经 SHA-256 核对的 Preferences 链接描述，
+构建 arm64 / arm64e 通用二进制，两种格式分别打包。手动构建需使用包含 Preferences 的 SDK，
+或与 CI 一样将该链接描述放入 `work/frameworks/Preferences.framework/Preferences.tbd`。
 
 ```sh
 export THEOS=/path/to/roothide/theos

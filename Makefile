@@ -29,6 +29,7 @@ RelaxTunePrefs_INSTALL_PATH = /Library/PreferenceBundles
 RelaxTunePrefs_PRIVATE_FRAMEWORKS = Preferences
 RelaxTunePrefs_FRAMEWORKS = UIKit Foundation
 RelaxTunePrefs_CFLAGS = -fobjc-arc -Isrc
+RelaxTunePrefs_LDFLAGS += -F$(THEOS_PROJECT_DIR)/work/frameworks
 RelaxTunePrefs_RESOURCE_DIRS = prefs/Resources
 
 include $(THEOS_MAKE_PATH)/bundle.mk
