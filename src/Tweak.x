@@ -81,20 +81,26 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
 %hook UIView
 + (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations {
     RTAnimationDepth++;
-    @try { %orig(RTDuration(duration), animations); }
+    @try {
+        %orig(RTDuration(duration), animations);
+    }
     @finally { RTAnimationDepth--; }
 }
 + (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
-    @try { %orig(RTDuration(duration), animations, completion); }
+    @try {
+        %orig(RTDuration(duration), animations, completion);
+    }
     @finally { RTAnimationDepth--; }
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
                    options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
-    @try { %orig(RTDuration(duration), delay, options, animations, completion); }
+    @try {
+        %orig(RTDuration(duration), delay, options, animations, completion);
+    }
     @finally { RTAnimationDepth--; }
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
@@ -102,7 +108,9 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
                    options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
-    @try { %orig(RTDuration(duration), delay, damping, velocity, options, animations, completion); }
+    @try {
+        %orig(RTDuration(duration), delay, damping, velocity, options, animations, completion);
+    }
     @finally { RTAnimationDepth--; }
 }
 %end
@@ -171,7 +179,9 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
         BOOL springboard = [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
         if (springboard) {
             %init(RTSpringPower);
-            if (NSClassFromString(@"SBFFluidBehaviorSettings")) { %init(RTSpringAnimations); }
+            if (NSClassFromString(@"SBFFluidBehaviorSettings")) {
+                %init(RTSpringAnimations);
+            }
         } else {
             %init(RTApps);
         }

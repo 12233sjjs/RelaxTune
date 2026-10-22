@@ -115,8 +115,7 @@ static BOOL RTIsPlaybackUnit(AudioUnit unit, AudioUnitPropertyID property,
 }
 
 %group RTAudioHooks
-%hookf(OSStatus, AudioUnitSetProperty, AudioUnit unit, AudioUnitPropertyID property,
-        AudioUnitScope scope, AudioUnitElement element, const void *data, UInt32 size) {
+%hookf(OSStatus, AudioUnitSetProperty, AudioUnit unit, AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, const void *data, UInt32 size) {
     if (!RTIsPlaybackUnit(unit, property, scope, element) || !data ||
         size != sizeof(AURenderCallbackStruct)) return %orig(unit, property, scope, element, data, size);
     AURenderCallbackStruct callback = *(const AURenderCallbackStruct *)data;
