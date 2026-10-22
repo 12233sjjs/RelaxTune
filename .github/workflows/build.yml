@@ -1,0 +1,104 @@
+name: Build and package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core with sanitizers
+        run: |
+          mkdir -p work
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -Isrc tests/test_core.c src/DSP.c src/PowerPolicy.c -lm -o work/test_core
+          ./work/test_core
+      - name: Validate property lists and settings
+        run: |
+          python3 - <<'PY'
+          import pathlib, plistlib
+          for path in pathlib.Path(".").rglob("*.plist"):
+              with path.open("rb") as stream:
+                  plistlib.load(stream)
+              print("OK", path)
+          PY
+
+  build:
+    needs: test
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        scheme: [rootless, roothide]
+    env:
+      THEOS: ${{ github.workspace }}/work/theos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packaging tools and RootHide Theos
+        run: |
+          brew list ldid >/dev/null 2>&1 || brew install ldid
+          brew list dpkg >/dev/null 2>&1 || brew install dpkg
+          git clone https://github.com/roothide/theos.git "$THEOS"
+          git -C "$THEOS" checkout cfba89a53a05b4a1b822121158acc3669c20602f
+          git -C "$THEOS" submodule update --init --recursive
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$THEOS/sdks"
+          ln -s "$sdk" "$THEOS/sdks/$(basename "$sdk")"
+      - name: Build ${{ matrix.scheme }}
+        run: |
+          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=${{ matrix.scheme }} -j2
+      - name: Inspect binaries and package
+        run: |
+          mkdir -p work/extracted
+          dpkg-deb -x packages/*.deb work/extracted
+          for name in RelaxTune RelaxTuneAudio; do
+            path="$(find work/extracted -name "$name.dylib" -print -quit)"
+            test -n "$path"
+            file "$path"
+            lipo -archs "$path"
+            otool -L "$path"
+          done
+          prefs="$(find work/extracted -path '*/RelaxTunePrefs.bundle/RelaxTunePrefs' -print -quit)"
+          test -n "$prefs"
+          lipo -archs "$prefs"
+          dpkg-deb --info packages/*.deb
+          dpkg-deb --contents packages/*.deb
+          {
+            echo "Commit: $GITHUB_SHA"
+            echo "Scheme: ${{ matrix.scheme }}"
+            echo "Theos: cfba89a53a05b4a1b822121158acc3669c20602f"
+            xcodebuild -version
+            echo "Core tests: passed in test job"
+            echo "Device validation: NOT PERFORMED"
+          } > packages/BUILD-INFO-${{ matrix.scheme }}.txt
+          (cd packages && shasum -a 256 *.deb > SHA256-${{ matrix.scheme }}.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RelaxTune-${{ matrix.scheme }}
+          path: packages/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/^Version: //p' control)"
+          gh release create "v$version" artifacts/* --target "$GITHUB_SHA" \
+            --title "RelaxTune $version (device testing required)" \
+            --notes-file RELEASE_NOTES.md --prerelease
