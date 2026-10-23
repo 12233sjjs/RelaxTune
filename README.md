@@ -11,13 +11,21 @@
 | 总开关 | 停止本插件的动画、网络配置及均衡器处理，恢复插件接管的低电量状态 | 开 |
 | 调整动画 | UIKit 普通视图动画及 SpringBoard 应用开合弹簧响应 | 开 |
 | 动画时长比例 | 0.00–10.00，步长 0.01；1.00 原速，0.90 微快，数值越小越快 | 0.90 |
+| 系统动画120Hz优先 | 在支持 120 Hz 的设备上，为 SpringBoard 显示链接请求 120 Hz | 关 |
 | 等待网络恢复 | 新建的默认/临时 URLSession 配置启用 waitsForConnectivity | 开 |
 | 锁屏省电 | 未充电且锁屏时开启系统低电量模式，解锁或充电时恢复 | 开 |
+| 王者荣耀前台停用低电量 | 王者荣耀前台且未锁屏时停用低电量模式，离开后恢复被暂时停用的手动状态 | 开 |
 | 播放均衡器 | 兼容 RemoteIO 回调的单/双声道 PCM 播放路径，轻量低频与高频增强 | 关 |
 
 动画仅调整原始时长 0.12–1.0 秒的上述动画，不改变长时间进度动画、交互式手势或所有属性动画。
 0 倍时普通动画立即完成；SpringBoard 弹簧响应最小为 0.01 秒，防止零值异常。
 系统开启“减弱动态效果”时不加速动画。更改倍率后，部分 SpringBoard 设置可能需重新载入界面或重新 SpringBoard 才生效。
+
+120 Hz 选项仅作用于 SpringBoard 的 CADisplayLink 请求，不改变游戏的渲染循环或解锁游戏帧率档位。
+关闭选项、关闭总开关或系统低电量模式开启时恢复调用方原始请求。
+按用户要求，插件不再根据严重发热状态主动撤销 120 Hz 请求，也不监听热状态通知。
+系统仍可按温度、功耗和显示策略降低实际刷新率，不能保证始终输出 120 FPS。
+本项目不包含 CPU/GPU 锁频，不把 3240/1380 MHz 的工具读数当成可写频率档位。
 
 网络模块不修改 TCP、DNS、基带、Wi-Fi 驱动或发射功率，不提高信号，不承诺降低延迟。
 它只影响应用采用的新 URLSession 配置，不影响已有会话、直接 socket 或应用自有网络栈。
@@ -28,8 +36,17 @@
 
 省电使用系统低电量模式来减少后台活动，不杀后台、不清内存、不禁用系统守护进程、
 不模拟过热、不降低系统安全保护。可能影响后台刷新、同步和显示刷新率。
-若用户原本已开启低电量模式，插件不在解锁时关闭它。锁屏期间手动关闭低电量模式后，
+除开启王者荣耀前台保护时外，若用户原本已开启低电量模式，插件不在解锁时关闭它。锁屏期间手动关闭低电量模式后，
 本次锁屏不再强制开启。卸载前先解锁并关闭插件总开关，确认已恢复所需低电量状态。
+
+游戏保护目前只识别截图所示的国服王者荣耀（`com.tencent.smoba`），通过 SpringBoard 的前台切换事件判断。
+进入游戏时，手动开启的低电量模式会暂时关闭，退出前台、锁屏或关闭保护后恢复；
+插件自己因锁屏开启的模式不会被误当成手动状态恢复。恢复标记持久保存，以便 SpringBoard 重载后继续恢复。
+使用 iOS 15+ 的 `_PMLowPowerMode` 接口并保留旧接口回退；仅在系统确认切换成功后记录状态，
+不关闭温控、热保护或内存压力回收，也不保证解决所有掉帧。没有连接目标机验证前台回调或私有接口行为。
+
+用户提供的 `system_tweaks(1).sh` 原样保存在 `references/system_tweaks.original.sh`，
+没有作为安装或启动脚本执行。参数审查见 `references/system-tweaks-review.md`。
 
 音效不是杜比，也不是所有 App 音频的全局处理。只覆盖装载该插件且采用 RemoteIO 输出回调的应用，
 支持原生小端 float32 或 signed int16、单/双声道、16–192 kHz 的紧凑 PCM。
@@ -83,6 +100,8 @@ GitHub Actions 自动检查省电状态决策、动画倍率边界、滤波响�
 1. 确认两个格式分别由对应环境加载，设置面板、总开关和单项开关有效。
 2. 检查 0、0.9、1、10 倍动画，开合 App/文件夹/应用内导航、系统减弱动态效果。
 3. 先关低电量模式：锁屏启用，解锁/充电恢复；原本开启时保持开启。
+   王者荣耀前台保护开启时另测：手动开启低电量后进入游戏关闭，离开游戏恢复；
+   原本关闭时离开游戏保持关闭；游戏中锁屏、切换 App、关闭开关、重载 SpringBoard 后验证恢复。
 4. 同一地点、同一网络分别禁用/启用插件，记录延迟分布、断流次数；
    断网后观察支持的 URLSession 请求能否等待恢复，不把 DNS/路由器问题归功于插件。
 5. 相同亮度、信号和使用负载下比较电量变化，至少区分待机与使用阶段。
@@ -95,6 +114,8 @@ GitHub Actions 自动检查省电状态决策、动画倍率边界、滤波响�
 - [RootHide Theos](https://github.com/roothide/theos)：使用其构建与打包方案。
 - [Speedster](https://github.com/Hoangdus/Speedster)：参考其动画挂钩位置；未复制其偏好设置或固定响应值。
 - [Powercuff](https://github.com/rpetrich/Powercuff)：调研低电量/温控机制；未采用温控模拟或复制代码。
+- [Theos LowPowerMode headers](https://github.com/theos/headers/blob/master/LowPowerMode/_PMLowPowerMode.h)：核对低电量模式接口及异步完成回调。
+- [Immortalizer](https://github.com/sergealagon/Immortalizer)：核对 SpringBoard 前台变化挂钩，未复用其后台保活实现。
 - [EQE](https://github.com/rweichler/EQE)：上游说明当前源码不公开，未打包其二进制或使用其代码。
 - [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)：peaking EQ 双二阶滤波器公式。
 - [Apple waitsForConnectivity](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/waitsforconnectivity)：网络等待机制边界。

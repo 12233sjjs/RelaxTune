@@ -1,5 +1,17 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Game and display policy update in 0.1.5:
+
+- Add an enabled-by-default low-power exemption for foreground Honor of Kings (`com.tencent.smoba`).
+- Restore a suspended manual low-power state on leaving the game, locking, or disabling protection.
+- Use `_PMLowPowerMode` on iOS 15+ with completion confirmation and a legacy fallback.
+- Add an optional SpringBoard-only 120 Hz display-link preference, disabled by default.
+- Restore original frame requests when disabled or in low-power mode.
+- Do not withdraw the 120 Hz request based on thermal state; system thermal protections remain in control.
+- This is not a CPU/GPU frequency lock or guaranteed 120 FPS; game render loops are unchanged.
+- Preserve the supplied sysctl script as a source reference only, not an install/startup action.
+- No device FPS, thermal, battery, or private-interface validation has been performed.
+
 Battery overhead update in 0.1.4:
 
 - Install audio hooks and route monitoring only after the EQ is enabled.

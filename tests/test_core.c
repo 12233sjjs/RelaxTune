@@ -36,6 +36,32 @@ static void testAnimation(void) {
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
 }
 
+static void testGamePower(void) {
+    assert(RTIsPerformanceGame("com.tencent.smoba"));
+    assert(!RTIsPerformanceGame(NULL));
+    assert(!RTIsPerformanceGame("com.tencent.smoba.other"));
+    assert(!RTIsPerformanceGame("com.apple.springboard"));
+
+    // Manual low power: suspend on entry, retain the intent, restore on exit.
+    assert(RTGamePowerDecision(true, true, false, true, false) == RTGameDisablePower);
+    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
+    assert(RTGamePowerDecision(true, false, false, false, true) == RTGameRestorePower);
+    assert(RTGamePowerDecision(true, false, false, true, true) == RTGameClearRestore);
+    assert(RTGamePowerDecision(true, false, false, true, false) == RTGameNoChange);
+
+    // An originally disabled mode must not be enabled when the game exits.
+    assert(RTGamePowerDecision(true, true, false, false, false) == RTGameNoChange);
+    assert(RTGamePowerDecision(true, false, false, false, false) == RTGameNoChange);
+    assert(RTPowerDecision(true, false, false, true, true) == RTRestorePower);
+
+    // Locking or disabling protection restores a suspended manual mode.
+    assert(RTGamePowerDecision(true, true, true, false, true) == RTGameRestorePower);
+    assert(RTGamePowerDecision(false, true, false, false, true) == RTGameRestorePower);
+    assert(RTGamePowerDecision(false, true, false, true, true) == RTGameClearRestore);
+    assert(RTGamePowerDecision(false, true, false, true, false) == RTGameNoChange);
+    assert(RTPowerDecision(true, true, false, true, false) == RTNoChange);
+}
+
 static double gain(double rate, double frequency) {
     RTEqualizer eq;
     assert(RTEQInit(&eq, rate));
@@ -81,7 +107,8 @@ static void testDSP(void) {
 int main(void) {
     testPower();
     testAnimation();
+    testGamePower();
     testDSP();
-    puts("PASS: power ownership, animation 0..10/0.01, DSP response/stereo/headroom/reset");
+    puts("PASS: power ownership, game suspend/restore, animation 0..10/0.01, DSP response/stereo/headroom/reset");
     return 0;
 }

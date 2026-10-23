@@ -5,7 +5,7 @@ THEOS_PACKAGE_SCHEME ?= rootless
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = RelaxTune RelaxTuneAudio
-RelaxTune_FILES = src/Tweak.x src/Settings.m src/PowerPolicy.c
+RelaxTune_FILES = src/Tweak.x src/Refresh.x src/Settings.m src/PowerPolicy.c
 RelaxTune_FRAMEWORKS = UIKit QuartzCore Foundation
 RelaxTune_CFLAGS = -Isrc
 RelaxTune_OBJCFLAGS = -fobjc-arc

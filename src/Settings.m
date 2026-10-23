@@ -5,6 +5,8 @@ atomic_bool RTEnabled = true;
 atomic_bool RTAnimations = true;
 atomic_bool RTNetwork = true;
 atomic_bool RTLowPower = true;
+atomic_bool RTGamePerformance = true;
+atomic_bool RTHighRefresh = false;
 atomic_bool RTAudio = false;
 _Atomic(double) RTAnimationFactor = 0.9;
 
@@ -21,6 +23,8 @@ void RTLoadSettings(void) {
     atomic_store(&RTAnimations, RTRead(@"Animations", YES));
     atomic_store(&RTNetwork, RTRead(@"Network", YES));
     atomic_store(&RTLowPower, RTRead(@"LowPower", YES));
+    atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
+    atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", NO));
     atomic_store(&RTAudio, RTRead(@"Audio", NO));
     CFPropertyListRef raw = CFPreferencesCopyAppValue(CFSTR("AnimationFactor"),
                                                      CFSTR("com.12233sjjs.relaxtune"));
