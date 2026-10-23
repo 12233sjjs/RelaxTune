@@ -66,7 +66,10 @@ void RTRefreshRateDidChange(void) {
     %orig;
 }
 - (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
-    if (RTApplyingRefresh) { %orig(range); return; }
+    if (RTApplyingRefresh) {
+        %orig(range);
+        return;
+    }
     @synchronized (RTDisplayLinks) {
         RTFrameRequest *request = RTTrackDisplayLink(self);
         request.range = range;
@@ -75,7 +78,10 @@ void RTRefreshRateDidChange(void) {
     }
 }
 - (void)setPreferredFramesPerSecond:(NSInteger)frames {
-    if (RTApplyingRefresh) { %orig(frames); return; }
+    if (RTApplyingRefresh) {
+        %orig(frames);
+        return;
+    }
     @synchronized (RTDisplayLinks) {
         RTFrameRequest *request = RTTrackDisplayLink(self);
         request.frames = frames;

@@ -46,7 +46,22 @@
 不关闭温控、热保护或内存压力回收，也不保证解决所有掉帧。没有连接目标机验证前台回调或私有接口行为。
 
 用户提供的 `system_tweaks(1).sh` 原样保存在 `references/system_tweaks.original.sh`，
-没有作为安装或启动脚本执行。参数审查见 `references/system-tweaks-review.md`。
+原数值已加入安装包的 `Library/ccSystem/system_tweaks.sh` 手动模块。参数审查见 `references/system-tweaks-review.md`。
+模块不在安装、启动或进入游戏时自动执行，不需要固定 `/var/jb` 前缀。
+在越狱终端取得 root 权限后，通过包管理器文件列表定位脚本：
+
+```sh
+script="$(dpkg-query -L com.12233sjjs.relaxtune | sed -n '\|/Library/ccSystem/system_tweaks.sh$|p' | head -n 1)"
+sh "$script" apply
+# 恢复本模块修改前的数值：
+sh "$script" restore
+```
+
+支持原脚本六个写入值，跳过不存在、无法读取或非整数的键；写入失败时尝试恢复已经修改的值。
+备份保存在 `/var/root/Library/Preferences/ccSystem/kernel-state`，重复执行不会覆盖基线。
+恢复时保留其他工具后来更改的值；恢复失败则保留剩余备份。卸载插件前先执行 restore。
+这些内核参数没有在目标机验证，其中 86400000 ms 是 24 小时的持续内存压力处理延迟，
+不能保证改善帧率或续航，不建议将它作为常规游戏优化。重启后也不自动重放参数。
 
 音效不是杜比，也不是所有 App 音频的全局处理。只覆盖装载该插件且采用 RemoteIO 输出回调的应用，
 支持原生小端 float32 或 signed int16、单/双声道、16–192 kHz 的紧凑 PCM。

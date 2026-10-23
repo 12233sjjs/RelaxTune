@@ -28,6 +28,10 @@ jobs:
                   plistlib.load(stream)
               print("OK", path)
           PY
+      - name: Validate manual kernel module
+        run: |
+          sh -n layout/Library/ccSystem/system_tweaks.sh
+          python3 tests/test_kernel_script.py
 
   build:
     needs: test

@@ -9,7 +9,9 @@ Game and display policy update in 0.1.5:
 - Restore original frame requests when disabled or in low-power mode.
 - Do not withdraw the 120 Hz request based on thermal state; system thermal protections remain in control.
 - This is not a CPU/GPU frequency lock or guaranteed 120 FPS; game render loops are unchanged.
-- Preserve the supplied sysctl script as a source reference only, not an install/startup action.
+- Package the supplied six sysctl values as a manual root-only apply/restore module.
+- Skip unsupported keys, retain original values, and attempt rollback on a failed write.
+- Do not run kernel writes at installation, startup, or game entry; the 24-hour pressure delay remains experimental.
 - No device FPS, thermal, battery, or private-interface validation has been performed.
 
 Battery overhead update in 0.1.4:

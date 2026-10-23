@@ -19,6 +19,7 @@ if len(sys.argv) > 1:
     info_file = bundle / "Info.plist"
     root_file = bundle / "Root.plist"
     assert (bundle / "RelaxTunePrefs").is_file(), "Missing settings executable"
+    assert (library / "ccSystem/system_tweaks.sh").is_file(), "Missing manual kernel module"
 else:
     entry_file = root / "layout/Library/PreferenceLoader/Preferences/RelaxTune.plist"
     info_file = root / "prefs/Resources/Info.plist"
