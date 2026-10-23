@@ -10,5 +10,6 @@ extern atomic_bool RTHighRefresh;
 extern atomic_bool RTAudio;
 extern _Atomic(double) RTAnimationFactor;
 void RTLoadSettings(void);
+BOOL RTIsExcludedApp(NSString *identifier, NSDictionary *configuration);
 BOOL RTShouldLoadAppHooks(void);
 void RTRefreshRateDidChange(void);

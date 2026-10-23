@@ -16,6 +16,8 @@ RelaxTuneAudio_CFLAGS = -Isrc
 RelaxTuneAudio_OBJCFLAGS = -fobjc-arc
 
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+RelaxTune_CFLAGS += -DRT_ROOTHIDE=1
+RelaxTuneAudio_CFLAGS += -DRT_ROOTHIDE=1
 RelaxTune_LDFLAGS += -lroothide
 RelaxTuneAudio_LDFLAGS += -lroothide
 RelaxTunePrefs_LDFLAGS += -lroothide

@@ -1,5 +1,17 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Relaxin blacklist integration in 0.1.7:
+
+- Read RootHideConfig.plist through jbroot in RootHide packages before installing plugin hooks.
+- Exclude app identifiers whose appconfig values are true; preserve the fixed Honor of Kings exclusion.
+- Use the shared entry policy for the main, audio and SpringBoard refresh modules.
+- Keep the blacklist read-only. Standard rootless packages retain only the fixed game exclusion.
+- Missing, unreadable or malformed configuration does not activate the extra exclusions.
+- Changes require fully quitting and reopening the affected app.
+- RootHide itself controls pre-launch injection. This additional check cannot unload dylibs or guarantee anti-cheat compatibility.
+- Add Foundation-based tests for exclusion matching, plist booleans and malformed data.
+- Device configuration access, injection behavior and game compatibility remain untested.
+
 Game exclusion update in 0.1.6:
 
 - Exclude Honor of Kings (`com.tencent.smoba`) from the main and audio plugin initialization.

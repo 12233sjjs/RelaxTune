@@ -44,6 +44,12 @@ jobs:
       THEOS: ${{ github.workspace }}/work/theos
     steps:
       - uses: actions/checkout@v4
+      - name: Test app exclusion policy
+        run: |
+          mkdir -p work
+          clang -std=c11 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -Isrc \
+            tests/test_app_policy.m src/Settings.m -o work/test_app_policy
+          ./work/test_app_policy
       - name: Install packaging tools and RootHide Theos
         run: |
           brew list ldid >/dev/null 2>&1 || brew install ldid

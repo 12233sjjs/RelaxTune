@@ -44,6 +44,15 @@
 不安装动画、网络、音效钩子，也不注册设置或音频监听。SpringBoard 内的游戏前台低电量管理仍保留。
 这不会修改 Relaxin/RootHide 的设备黑名单，也不能阻止注入器加载插件动态库，不代表反作弊豁免。
 升级后需完全退出并重新打开游戏，已安装的进程内钩子不能通过升级即时移除。
+从 0.1.7 起，RootHide 包在安装钩子前还会只读 Relaxin 的
+`/var/mobile/Library/RootHide/RootHideConfig.plist`（通过 `jbroot` 定位），
+跳过 `appconfig` 中布尔值为真的 App。主插件、音效及刷新率模块使用同一入口策略。
+不写入或修改名单，不添加检测伪装；固定王者荣耀排除继续保留。
+标准 rootless 包只保留固定排除，不读取 RootHide 配置。
+配置缺失、不可读或格式异常时，额外名单检查不生效，固定排除仍有效。
+名单应在 Relaxin/RootHide 管理界面修改，并完全退出后重开对应 App。
+RootHide 自身负责启动阶段的无注入策略；本插件的只读检查只是补充，不能卸载已经加载的动态库。
+未连接设备验证实际名单、配置读取权限、加载行为或游戏反作弊兼容性，不能保证不封号。
 进入游戏时，手动开启的低电量模式会暂时关闭，退出前台、锁屏或关闭保护后恢复；
 插件自己因锁屏开启的模式不会被误当成手动状态恢复。恢复标记持久保存，以便 SpringBoard 重载后继续恢复。
 使用 iOS 15+ 的 `_PMLowPowerMode` 接口并保留旧接口回退；仅在系统确认切换成功后记录状态，
@@ -131,6 +140,7 @@ GitHub Actions 自动检查省电状态决策、动画倍率边界、滤波响�
 
 - [Relaxin](https://github.com/owngoal-dev/Relaxin)：确认 RootHide 架构及支持系统。
 - [RootHide Theos](https://github.com/roothide/theos)：使用其构建与打包方案。
+- [Relaxin blacklist lookup](https://github.com/owngoal-dev/Relaxin/blob/f44e0acfef4453989381736e0c86b9c14e7ea045/Vendor/Dopamine/BaseBin/libjailbreak/src/roothider/blacklist.m)：核对 RootHideConfig.plist 的路径及 appconfig 布尔值语义。
 - [Speedster](https://github.com/Hoangdus/Speedster)：参考其动画挂钩位置；未复制其偏好设置或固定响应值。
 - [Powercuff](https://github.com/rpetrich/Powercuff)：调研低电量/温控机制；未采用温控模拟或复制代码。
 - [Theos LowPowerMode headers](https://github.com/theos/headers/blob/master/LowPowerMode/_PMLowPowerMode.h)：核对低电量模式接口及异步完成回调。
