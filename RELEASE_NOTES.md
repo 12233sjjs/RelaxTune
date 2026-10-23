@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Game exclusion update in 0.1.6:
+
+- Exclude Honor of Kings (`com.tencent.smoba`) from the main and audio plugin initialization.
+- Do not install animation, network or audio hooks, or register plugin observers in the game process.
+- Preserve foreground-game low-power management in SpringBoard and the SpringBoard-only 120 Hz option.
+- Fully quit and reopen the game after upgrading to remove hooks from the old process.
+- This does not modify the Relaxin/RootHide blacklist or prevent the injector from loading the dylibs.
+- No device or anti-cheat compatibility validation has been performed.
+
 Game and display policy update in 0.1.5:
 
 - Add an enabled-by-default low-power exemption for foreground Honor of Kings (`com.tencent.smoba`).

@@ -10,5 +10,5 @@ extern atomic_bool RTHighRefresh;
 extern atomic_bool RTAudio;
 extern _Atomic(double) RTAnimationFactor;
 void RTLoadSettings(void);
-BOOL RTIsApp(void);
+BOOL RTShouldLoadAppHooks(void);
 void RTRefreshRateDidChange(void);

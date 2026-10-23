@@ -220,7 +220,7 @@ static void RTAudioSettingsChanged(CFNotificationCenterRef center, void *observe
 
 %ctor {
     @autoreleasepool {
-        if (!RTIsApp()) return;
+        if (!RTShouldLoadAppHooks()) return;
         NSString *bundle = NSBundle.mainBundle.bundleIdentifier;
         if ([bundle isEqualToString:@"com.apple.springboard"] ||
             [bundle isEqualToString:@"com.apple.mobilephone"] ||

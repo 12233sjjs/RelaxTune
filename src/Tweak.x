@@ -283,7 +283,7 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
 
 %ctor {
     @autoreleasepool {
-        if (!RTIsApp()) return;
+        if (!RTShouldLoadAppHooks()) return;
         RTManagesPower = [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,

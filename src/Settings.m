@@ -37,7 +37,8 @@ void RTLoadSettings(void) {
     atomic_store(&RTEnabled, RTRead(@"Enabled", YES));
 }
 
-BOOL RTIsApp(void) {
-    NSString *path = NSBundle.mainBundle.bundlePath;
-    return [path.pathExtension isEqualToString:@"app"];
+BOOL RTShouldLoadAppHooks(void) {
+    NSBundle *bundle = NSBundle.mainBundle;
+    return [bundle.bundlePath.pathExtension isEqualToString:@"app"] &&
+           ![bundle.bundleIdentifier isEqualToString:@"com.tencent.smoba"];
 }
