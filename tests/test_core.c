@@ -34,6 +34,11 @@ static void testAnimation(void) {
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
+    assert(fabs(RTScaledSpringSpeed(1.0, 0.9) - 0.9) < 1e-12);
+    assert(fabs(RTScaledSpringSpeed(0.5, 2.0) - 1.0) < 1e-12);
+    assert(RTScaledSpringSpeed(0.0, 0.5) == 0.0);
+    assert(isnan(RTScaledSpringSpeed(NAN, 0.5)));
+    assert(RTScaledSpringSpeed(-1.0, 2.0) == -1.0);
 }
 
 static void testGamePower(void) {
@@ -109,6 +114,6 @@ int main(void) {
     testAnimation();
     testGamePower();
     testDSP();
-    puts("PASS: power ownership, game suspend/restore, animation 0..10/0.01, DSP response/stereo/headroom/reset");
+    puts("PASS: power ownership, game suspend/restore, animation 0..10/0.01, spring speed scaling, DSP response/stereo/headroom/reset");
     return 0;
 }

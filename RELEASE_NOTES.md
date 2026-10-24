@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+App launch animation update in 0.1.8:
+
+- Apply the animation duration multiplier to SpringBoard's SBFAnimationSettings speed, which covers the app-open icon zoom and home screen spring animations.
+- Keep the spring curve shape unchanged; only playback speed scales.
+- Honor the existing animation switch, Reduce Motion and 0.00-10.00 multiplier behavior.
+- No device launch-latency or animation measurement has been performed.
+
 Relaxin blacklist integration in 0.1.7:
 
 - Read RootHideConfig.plist through jbroot in RootHide packages before installing plugin hooks.

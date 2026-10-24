@@ -18,9 +18,14 @@ static BOOL RTGameRestoreLowPower;
 static BOOL RTApplyingPower;
 static BOOL RTPowerWritePending;
 static BOOL RTFrontmostGame;
+static BOOL RTManagesSpringSettings;
+static BOOL RTApplyingSpringSpeed;
+static NSHashTable *RTSpringSettings;
+static char RTSpringBaseKey;
 static __thread unsigned RTAnimationDepth;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 static void RTApplyPower(void);
+static void RTApplySpringSettings(void);
 
 static void RTSaveOwnership(BOOL owned) {
     RTOwnsPower = owned;
@@ -166,6 +171,7 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
         RTLoadSettings();
         if (RTManagesPower) RTApplyPower();
         if (RTManagesPower) RTRefreshRateDidChange();
+        RTApplySpringSettings();
     });
 }
 
@@ -175,6 +181,35 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
         return RTScaledDuration(duration, atomic_load(&RTAnimationFactor));
     }
     return duration;
+}
+
+static BOOL RTSpringAnimationActive(void) {
+    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+           !UIAccessibilityIsReduceMotionEnabled();
+}
+
+static void RTStoreSpringBase(id settings, double speed) {
+    objc_setAssociatedObject(settings, &RTSpringBaseKey, @(speed), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    @synchronized (RTSpringSettings) {
+        if (![RTSpringSettings containsObject:settings]) [RTSpringSettings addObject:settings];
+    }
+}
+
+static void RTApplySpringSettings(void) {
+    if (!RTManagesSpringSettings || !RTSpringSettings) return;
+    @synchronized (RTSpringSettings) {
+        for (id settings in RTSpringSettings.allObjects) {
+            NSNumber *base = objc_getAssociatedObject(settings, &RTSpringBaseKey);
+            if (!base) continue;
+            double speed = [base doubleValue];
+            if (RTSpringAnimationActive()) {
+                speed = RTScaledSpringSpeed(speed, atomic_load(&RTAnimationFactor));
+            }
+            RTApplyingSpringSpeed = YES;
+            @try { [settings setSpeed:speed]; }
+            @finally { RTApplyingSpringSpeed = NO; }
+        }
+    }
 }
 
 %group RTApps
@@ -241,6 +276,18 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
 %end
 %end
 
+%group RTSpringAnimationSettings
+%hook SBFAnimationSettings
+- (void)setSpeed:(double)speed {
+    if (!RTApplyingSpringSpeed) {
+        RTStoreSpringBase(self, speed);
+        speed = RTScaledSpringSpeed(speed, atomic_load(&RTAnimationFactor));
+    }
+    %orig(speed);
+}
+%end
+%end
+
 %group RTSpringPower
 %hook SpringBoard
 - (void)frontDisplayDidChange:(id)display {
@@ -293,6 +340,11 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
             %init(RTSpringPower);
             if (NSClassFromString(@"SBFFluidBehaviorSettings")) {
                 %init(RTSpringAnimations);
+            }
+            if (NSClassFromString(@"SBFAnimationSettings")) {
+                RTSpringSettings = [NSHashTable weakObjectsHashTable];
+                RTManagesSpringSettings = YES;
+                %init(RTSpringAnimationSettings);
             }
         } else {
             %init(RTApps);
