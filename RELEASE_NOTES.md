@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Zombie reaping update in 0.1.9:
+
+- Add an enabled-by-default option to reap SpringBoard zombie child processes every five seconds.
+- Reaps only terminated children of the SpringBoard process with WNOHANG, preventing PID exhaustion without touching running processes.
+- Add a "自动清理僵尸进程" switch under 网络与电池; disabling it cancels the timer.
+- No device PID-count or stability measurement has been performed; reaping consumes exit statuses SpringBoard has not read itself.
+
 App launch animation update in 0.1.8:
 
 - Apply the animation duration multiplier to SpringBoard's SBFAnimationSettings speed, which covers the app-open icon zoom and home screen spring animations.

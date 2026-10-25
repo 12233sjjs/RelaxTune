@@ -12,6 +12,7 @@ atomic_bool RTLowPower = true;
 atomic_bool RTGamePerformance = true;
 atomic_bool RTHighRefresh = false;
 atomic_bool RTAudio = false;
+atomic_bool RTZombieReap = true;
 _Atomic(double) RTAnimationFactor = 0.9;
 
 static BOOL RTRead(NSString *key, BOOL fallback) {
@@ -30,6 +31,7 @@ void RTLoadSettings(void) {
     atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
     atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", NO));
     atomic_store(&RTAudio, RTRead(@"Audio", NO));
+    atomic_store(&RTZombieReap, RTRead(@"ZombieReap", YES));
     CFPropertyListRef raw = CFPreferencesCopyAppValue(CFSTR("AnimationFactor"),
                                                      CFSTR("com.12233sjjs.relaxtune"));
     double factor = 0.9;

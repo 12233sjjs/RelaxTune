@@ -3,6 +3,8 @@
 #import <objc/message.h>
 #import <dlfcn.h>
 #import <notify.h>
+#import <sys/wait.h>
+#import <dispatch/dispatch.h>
 #import "Settings.h"
 #import "PowerPolicy.h"
 #include <math.h>
@@ -22,10 +24,12 @@ static BOOL RTManagesSpringSettings;
 static BOOL RTApplyingSpringSpeed;
 static NSHashTable *RTSpringSettings;
 static char RTSpringBaseKey;
+static dispatch_source_t RTZombieTimer;
 static __thread unsigned RTAnimationDepth;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 static void RTApplyPower(void);
 static void RTApplySpringSettings(void);
+static void RTUpdateZombieReaping(void);
 
 static void RTSaveOwnership(BOOL owned) {
     RTOwnsPower = owned;
@@ -172,6 +176,7 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
         if (RTManagesPower) RTApplyPower();
         if (RTManagesPower) RTRefreshRateDidChange();
         RTApplySpringSettings();
+        RTUpdateZombieReaping();
     });
 }
 
@@ -209,6 +214,26 @@ static void RTApplySpringSettings(void) {
             @try { [settings setSpeed:speed]; }
             @finally { RTApplyingSpringSpeed = NO; }
         }
+    }
+}
+
+static void RTUpdateZombieReaping(void) {
+    if (!RTManagesPower) return;
+    BOOL enabled = atomic_load(&RTEnabled) && atomic_load(&RTZombieReap);
+    if (enabled && !RTZombieTimer) {
+        dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
+        RTZombieTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+        dispatch_source_set_timer(RTZombieTimer,
+            dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
+            5 * NSEC_PER_SEC, NSEC_PER_SEC);
+        dispatch_source_set_event_handler(RTZombieTimer, ^{
+            int status;
+            while (waitpid(-1, &status, WNOHANG) > 0) {}
+        });
+        dispatch_resume(RTZombieTimer);
+    } else if (!enabled && RTZombieTimer) {
+        dispatch_source_cancel(RTZombieTimer);
+        RTZombieTimer = nil;
     }
 }
 
@@ -346,6 +371,7 @@ static void RTApplySpringSettings(void) {
                 RTManagesSpringSettings = YES;
                 %init(RTSpringAnimationSettings);
             }
+            RTUpdateZombieReaping();
         } else {
             %init(RTApps);
         }

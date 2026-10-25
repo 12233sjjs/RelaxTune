@@ -8,6 +8,7 @@ extern atomic_bool RTLowPower;
 extern atomic_bool RTGamePerformance;
 extern atomic_bool RTHighRefresh;
 extern atomic_bool RTAudio;
+extern atomic_bool RTZombieReap;
 extern _Atomic(double) RTAnimationFactor;
 void RTLoadSettings(void);
 BOOL RTIsExcludedApp(NSString *identifier, NSDictionary *configuration);
