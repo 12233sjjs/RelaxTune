@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Thermal state toggles in 0.2.0:
+
+- Add a disabled-by-default "禁用口袋高温" switch: SBPocketStateMonitor reports out-of-pocket and forwards pocket updates as out-of-pocket.
+- Add a disabled-by-default "锁定阳光暴晒" switch: SBThermalController reports isInSunlight as YES while SpringBoard thermal level and blocked state are reported as nominal, avoiding SpringBoard-side throttling from the forced sunlight state.
+- This does not disable kernel, hardware, thermalmonitord or per-app thermal protection.
+- Forcing sunlight state is an explicit override and is not a cooling or battery optimization.
+- No device thermal, frequency or stability validation has been performed.
+
 Zombie reaping update in 0.1.9:
 
 - Add an enabled-by-default option to reap SpringBoard zombie child processes every five seconds.

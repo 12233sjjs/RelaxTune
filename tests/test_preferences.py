@@ -34,7 +34,8 @@ assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
 assert set(switches) == {"Enabled", "Animations", "Network", "LowPower", "Audio",
-                         "GamePerformance", "HighRefresh", "ZombieReap"}
+                         "GamePerformance", "HighRefresh", "ZombieReap",
+                         "PocketThermal", "SunlightThermal"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
@@ -42,5 +43,7 @@ assert switches["Audio"]["default"] is False
 assert switches["GamePerformance"]["default"] is True
 assert switches["HighRefresh"]["default"] is False
 assert switches["ZombieReap"]["default"] is True
+assert switches["PocketThermal"]["default"] is False
+assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

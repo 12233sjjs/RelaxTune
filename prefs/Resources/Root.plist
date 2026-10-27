@@ -28,6 +28,13 @@
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>自动清理僵尸进程</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>ZombieReap</string><key>default</key><true/></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>温控</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>禁用口袋高温</string>
+        <key>defaults</key><string>com.12233sjjs.relaxtune</string>
+        <key>key</key><string>PocketThermal</string><key>default</key><false/></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>锁定阳光暴晒</string>
+        <key>defaults</key><string>com.12233sjjs.relaxtune</string>
+        <key>key</key><string>SunlightThermal</string><key>default</key><false/></dict>
     <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>音效</string></dict>
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>播放均衡器（实验）</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>

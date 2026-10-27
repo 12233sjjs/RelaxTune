@@ -313,6 +313,40 @@ static void RTUpdateZombieReaping(void) {
 %end
 %end
 
+%group RTPocketThermal
+%hook SBPocketStateMonitor
+- (long long)pocketState {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTPocketThermal)) return 0;
+    return %orig;
+}
+- (void)pocketStateManager:(id)manager didUpdateState:(long long)state {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTPocketThermal)) state = 0;
+    %orig(manager, state);
+}
+%end
+%end
+
+%group RTSunlightThermal
+%hook SBThermalController
+- (BOOL)isInSunlight {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return YES;
+    return %orig;
+}
+- (long long)level {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return 0;
+    return %orig;
+}
+- (BOOL)isThermalBlocked {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return NO;
+    return %orig;
+}
+- (BOOL)_isBlocked {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return NO;
+    return %orig;
+}
+%end
+%end
+
 %group RTSpringPower
 %hook SpringBoard
 - (void)frontDisplayDidChange:(id)display {
@@ -370,6 +404,12 @@ static void RTUpdateZombieReaping(void) {
                 RTSpringSettings = [NSHashTable weakObjectsHashTable];
                 RTManagesSpringSettings = YES;
                 %init(RTSpringAnimationSettings);
+            }
+            if (NSClassFromString(@"SBPocketStateMonitor")) {
+                %init(RTPocketThermal);
+            }
+            if (NSClassFromString(@"SBThermalController")) {
+                %init(RTSunlightThermal);
             }
             RTUpdateZombieReaping();
         } else {
