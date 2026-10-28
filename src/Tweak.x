@@ -22,6 +22,7 @@ static BOOL RTPowerWritePending;
 static BOOL RTFrontmostGame;
 static dispatch_source_t RTZombieTimer;
 static __thread unsigned RTAnimationDepth;
+static __thread BOOL RTConvertingSpringAnimation;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 static void RTApplyPower(void);
 static void RTUpdateZombieReaping(void);
@@ -234,9 +235,30 @@ static void RTUpdateZombieReaping(void) {
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
     @try {
-        %orig(RTDuration(duration), delay, RTSmoothOptions(options), animations, completion);
+        NSTimeInterval value = RTConvertingSpringAnimation ? duration : RTDuration(duration);
+        UIViewAnimationOptions smoothed = RTConvertingSpringAnimation ? options : RTSmoothOptions(options);
+        %orig(value, delay, smoothed, animations, completion);
     }
     @finally { RTAnimationDepth--; }
+}
++ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
+    usingSpringWithDamping:(CGFloat)damping initialSpringVelocity:(CGFloat)velocity
+                   options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
+                completion:(void (^)(BOOL))completion {
+    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+          !UIAccessibilityIsReduceMotionEnabled())) {
+        %orig(duration, delay, damping, velocity, options, animations, completion);
+        return;
+    }
+    RTAnimationDepth++;
+    @try {
+        RTConvertingSpringAnimation = YES;
+        [UIView animateWithDuration:RTDuration(duration) delay:delay
+                           options:RTSmoothOptions(options) animations:animations completion:completion];
+    } @finally {
+        RTConvertingSpringAnimation = NO;
+        RTAnimationDepth--;
+    }
 }
 %end
 

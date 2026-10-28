@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+0.2.0-based non-spring transition update in 0.2.5:
+
+- Use the 0.2.0 feature set as the base, retaining the thermal toggles and battery-related switches.
+- Convert app-level UIView spring animations to non-spring ease-in-out transitions with no bounce.
+- Apply BeginFromCurrentState to option-based UIView transitions so interrupted animations continue from the current visible state.
+- Keep SpringBoard folder and app-launch transitions native; no global SpringBoard spring settings are modified.
+- Keep zombie reaping disabled by default because it can interfere with SpringBoard child handling.
+- No device animation or folder validation has been performed.
+
 Non-spring smooth animation update in 0.2.4:
 
 - Leave UIView spring animations untouched so system spring curves remain native.
