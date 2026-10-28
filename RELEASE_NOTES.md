@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Spring speed regression fix in 0.2.2:
+
+- Fix SBFAnimationSettings speed direction: multiplier values below 1 now increase spring speed instead of slowing it down.
+- Values above 1 slow spring playback proportionally; 0 is capped at 10x speed to avoid a stalled folder transition.
+- This restores folder and app-launch spring responsiveness; 0.2.1 frame alignment and interruption handling remain.
+- If stutter persists, turn off the thermal toggles and zombie reaping before testing again.
+
 Animation smoothness update in 0.2.1:
 
 - Frame-align accelerated UIView animation durations to 120 Hz on ProMotion devices, with a 60 Hz fallback.

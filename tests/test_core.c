@@ -41,8 +41,10 @@ static void testAnimation(void) {
     assert(fabs(RTScaledDurationForFrameRate(0.5, 0.91, 60.0) - 27.0 / 60.0) < 1e-12);
     assert(RTFrameAlignedDuration(0.0, 120.0) == 0.0);
     assert(RTFrameAlignedDuration(NAN, 120.0) != RTFrameAlignedDuration(NAN, 120.0));
-    assert(fabs(RTScaledSpringSpeed(1.0, 0.9) - 0.9) < 1e-12);
-    assert(fabs(RTScaledSpringSpeed(0.5, 2.0) - 1.0) < 1e-12);
+    assert(fabs(RTScaledSpringSpeed(1.0, 0.9) - 1.0 / 0.9) < 1e-12);
+    assert(fabs(RTScaledSpringSpeed(0.5, 2.0) - 0.25) < 1e-12);
+    assert(fabs(RTScaledSpringSpeed(1.0, 0.0) - 10.0) < 1e-12);
+    assert(fabs(RTScaledSpringSpeed(1.0, 0.01) - 10.0) < 1e-12);
     assert(RTScaledSpringSpeed(0.0, 0.5) == 0.0);
     assert(isnan(RTScaledSpringSpeed(NAN, 0.5)));
     assert(RTScaledSpringSpeed(-1.0, 2.0) == -1.0);

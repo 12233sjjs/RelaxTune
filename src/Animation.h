@@ -28,6 +28,8 @@ static inline double RTFrameAlignedDuration(double duration, double fps) {
 
 static inline double RTScaledSpringSpeed(double speed, double factor) {
     if (!isfinite(speed) || speed <= 0.0) return speed;
-    return fmax(0.01, speed * RTClampFactor(factor));
+    double value = RTClampFactor(factor);
+    if (value == 0.0) return speed * 10.0;
+    return fmax(0.01, fmin(speed * 10.0, speed / value));
 }
 #endif
