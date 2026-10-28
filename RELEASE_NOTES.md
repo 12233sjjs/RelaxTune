@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Animation smoothness update in 0.2.1:
+
+- Frame-align accelerated UIView animation durations to 120 Hz on ProMotion devices, with a 60 Hz fallback.
+- Keep the requested animation multiplier while avoiding fractional display-frame durations.
+- Add BeginFromCurrentState to option-based UIView animations so interrupted transitions continue from the visible state.
+- Spring behavior keeps its shape; only playback speed changes.
+- No device animation smoothness or dropped-frame measurement has been performed.
+
 Thermal state toggles in 0.2.0:
 
 - Add a disabled-by-default "禁用口袋高温" switch: SBPocketStateMonitor reports out-of-pocket and forwards pocket updates as out-of-pocket.

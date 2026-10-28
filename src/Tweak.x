@@ -183,9 +183,18 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
 static NSTimeInterval RTDuration(NSTimeInterval duration) {
     if (RTAnimationDepth == 1 && atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
         !UIAccessibilityIsReduceMotionEnabled() && duration >= 0.12 && duration <= 1.0) {
-        return RTScaledDuration(duration, atomic_load(&RTAnimationFactor));
+        double fps = UIScreen.mainScreen.maximumFramesPerSecond >= 120 ? 120.0 : 60.0;
+        return RTScaledDurationForFrameRate(duration, atomic_load(&RTAnimationFactor), fps);
     }
     return duration;
+}
+
+static UIViewAnimationOptions RTSmoothedOptions(UIViewAnimationOptions options) {
+    if (atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+        !UIAccessibilityIsReduceMotionEnabled()) {
+        return options | UIViewAnimationOptionBeginFromCurrentState;
+    }
+    return options;
 }
 
 static BOOL RTSpringAnimationActive(void) {
@@ -259,7 +268,7 @@ static void RTUpdateZombieReaping(void) {
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
     @try {
-        %orig(RTDuration(duration), delay, options, animations, completion);
+        %orig(RTDuration(duration), delay, RTSmoothedOptions(options), animations, completion);
     }
     @finally { RTAnimationDepth--; }
 }
@@ -269,7 +278,8 @@ static void RTUpdateZombieReaping(void) {
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
     @try {
-        %orig(RTDuration(duration), delay, damping, velocity, options, animations, completion);
+        %orig(RTDuration(duration), delay, damping, velocity, RTSmoothedOptions(options),
+              animations, completion);
     }
     @finally { RTAnimationDepth--; }
 }
