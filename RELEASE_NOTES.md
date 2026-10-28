@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Non-spring smooth animation update in 0.2.4:
+
+- Leave UIView spring animations untouched so system spring curves remain native.
+- Accelerate only non-spring UIView duration animations.
+- Use an ease-in-out curve and BeginFromCurrentState for option-based UIView animations so interrupted transitions continue smoothly.
+- SpringBoard folder and app-launch transitions remain stock; no global SpringBoard spring settings are modified.
+- No device animation smoothness or dropped-frame measurement has been performed.
+
 Folder transition stability rollback in 0.2.3:
 
 - Remove the global SpringBoard SBFAnimationSettings speed hook and SBFFluidBehaviorSettings response hook so folder open/close transitions use stock timing.

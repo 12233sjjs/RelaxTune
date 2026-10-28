@@ -182,6 +182,16 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
     return duration;
 }
 
+static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
+    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+          !UIAccessibilityIsReduceMotionEnabled())) return options;
+    UIViewAnimationOptions curveMask = UIViewAnimationOptionCurveEaseIn |
+                                       UIViewAnimationOptionCurveEaseOut |
+                                       UIViewAnimationOptionCurveLinear;
+    options &= ~curveMask;
+    return options | UIViewAnimationOptionBeginFromCurrentState;
+}
+
 static void RTUpdateZombieReaping(void) {
     if (!RTManagesPower) return;
     BOOL enabled = atomic_load(&RTEnabled) && atomic_load(&RTZombieReap);
@@ -224,17 +234,7 @@ static void RTUpdateZombieReaping(void) {
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
     @try {
-        %orig(RTDuration(duration), delay, options, animations, completion);
-    }
-    @finally { RTAnimationDepth--; }
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
-    usingSpringWithDamping:(CGFloat)damping initialSpringVelocity:(CGFloat)velocity
-                   options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
-                completion:(void (^)(BOOL))completion {
-    RTAnimationDepth++;
-    @try {
-        %orig(RTDuration(duration), delay, damping, velocity, options, animations, completion);
+        %orig(RTDuration(duration), delay, RTSmoothOptions(options), animations, completion);
     }
     @finally { RTAnimationDepth--; }
 }
