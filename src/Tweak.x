@@ -411,11 +411,11 @@ static void RTUpdateZombieReaping(void) {
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
+        %init(RTSpringAnimations);
         if (RTManagesPower) {
             notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,
                                       dispatch_get_main_queue(), ^(int token) { exit(0); });
             %init(RTSpringPower);
-            %init(RTSpringAnimations);
             if (NSClassFromString(@"SBFAnimationSettings")) {
                 %init(RTSBFNonSpring);
             }
@@ -431,7 +431,6 @@ static void RTUpdateZombieReaping(void) {
             RTUpdateZombieReaping();
         } else {
             %init(RTApps);
-            %init(RTSpringAnimations);
         }
     }
 }
