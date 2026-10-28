@@ -9,6 +9,7 @@
 #import "PowerPolicy.h"
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include "Animation.h"
 
 static int RTLockToken = -1;
@@ -21,6 +22,7 @@ static BOOL RTApplyingPower;
 static BOOL RTPowerWritePending;
 static BOOL RTFrontmostGame;
 static dispatch_source_t RTZombieTimer;
+static int RTRespringToken = -1;
 static __thread unsigned RTAnimationDepth;
 static __thread BOOL RTConvertingSpringAnimation;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
@@ -193,6 +195,26 @@ static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
     return options | UIViewAnimationOptionBeginFromCurrentState;
 }
 
+static BOOL RTAnimationHooksActive(void) {
+    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+           !UIAccessibilityIsReduceMotionEnabled();
+}
+
+static double RTNumberForKey(id object, NSString *key) {
+    if (![object respondsToSelector:NSSelectorFromString(key)]) return 0.0;
+    id value = [object valueForKey:key];
+    return [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : 0.0;
+}
+
+static id RTSmoothBSAnimationSettings(double duration, double delay) {
+    Class factoryClass = NSClassFromString(@"BSAnimationSettings");
+    SEL factory = NSSelectorFromString(@"settingsWithDuration:delay:timingFunction:");
+    if (!factoryClass || ![factoryClass respondsToSelector:factory]) return nil;
+    id timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    return ((id (*)(id, SEL, double, double, id))objc_msgSend)(
+        factoryClass, factory, duration, delay, timing);
+}
+
 static void RTUpdateZombieReaping(void) {
     if (!RTManagesPower) return;
     BOOL enabled = atomic_load(&RTEnabled) && atomic_load(&RTZombieReap);
@@ -241,12 +263,29 @@ static void RTUpdateZombieReaping(void) {
     }
     @finally { RTAnimationDepth--; }
 }
+%end
+
+%hook NSURLSessionConfiguration
++ (NSURLSessionConfiguration *)defaultSessionConfiguration {
+    NSURLSessionConfiguration *config = %orig;
+    if (atomic_load(&RTEnabled) && atomic_load(&RTNetwork)) config.waitsForConnectivity = YES;
+    return config;
+}
++ (NSURLSessionConfiguration *)ephemeralSessionConfiguration {
+    NSURLSessionConfiguration *config = %orig;
+    if (atomic_load(&RTEnabled) && atomic_load(&RTNetwork)) config.waitsForConnectivity = YES;
+    return config;
+}
+%end
+%end
+
+%group RTSpringAnimations
+%hook UIView
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
     usingSpringWithDamping:(CGFloat)damping initialSpringVelocity:(CGFloat)velocity
                    options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
-    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-          !UIAccessibilityIsReduceMotionEnabled())) {
+    if (!RTAnimationHooksActive()) {
         %orig(duration, delay, damping, velocity, options, animations, completion);
         return;
     }
@@ -261,17 +300,31 @@ static void RTUpdateZombieReaping(void) {
     }
 }
 %end
+%end
 
-%hook NSURLSessionConfiguration
-+ (NSURLSessionConfiguration *)defaultSessionConfiguration {
-    NSURLSessionConfiguration *config = %orig;
-    if (atomic_load(&RTEnabled) && atomic_load(&RTNetwork)) config.waitsForConnectivity = YES;
-    return config;
+%group RTSBFNonSpring
+%hook SBFAnimationSettings
+- (id)BSAnimationSettings {
+    if (!RTAnimationHooksActive()) return %orig;
+    double duration = RTNumberForKey(self, @"duration");
+    double delay = RTNumberForKey(self, @"delay");
+    if (duration <= 0.0 || duration > 2.0) duration = 0.30;
+    id settings = RTSmoothBSAnimationSettings(
+        RTScaledDuration(duration, atomic_load(&RTAnimationFactor)), delay);
+    return settings ?: %orig;
 }
-+ (NSURLSessionConfiguration *)ephemeralSessionConfiguration {
-    NSURLSessionConfiguration *config = %orig;
-    if (atomic_load(&RTEnabled) && atomic_load(&RTNetwork)) config.waitsForConnectivity = YES;
-    return config;
+%end
+%end
+
+%group RTFluidNonSpring
+%hook SBFFluidBehaviorSettings
+- (id)BSAnimationSettings {
+    if (!RTAnimationHooksActive()) return %orig;
+    double response = RTNumberForKey(self, @"response");
+    if (response <= 0.0 || response > 2.0) response = 0.30;
+    id settings = RTSmoothBSAnimationSettings(
+        RTScaledDuration(response, atomic_load(&RTAnimationFactor)), 0.0);
+    return settings ?: %orig;
 }
 %end
 %end
@@ -359,7 +412,16 @@ static void RTUpdateZombieReaping(void) {
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
         if (RTManagesPower) {
+            notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,
+                                      dispatch_get_main_queue(), ^(int token) { exit(0); });
             %init(RTSpringPower);
+            %init(RTSpringAnimations);
+            if (NSClassFromString(@"SBFAnimationSettings")) {
+                %init(RTSBFNonSpring);
+            }
+            if (NSClassFromString(@"SBFFluidBehaviorSettings")) {
+                %init(RTFluidNonSpring);
+            }
             if (NSClassFromString(@"SBPocketStateMonitor")) {
                 %init(RTPocketThermal);
             }
@@ -369,6 +431,7 @@ static void RTUpdateZombieReaping(void) {
             RTUpdateZombieReaping();
         } else {
             %init(RTApps);
+            %init(RTSpringAnimations);
         }
     }
 }

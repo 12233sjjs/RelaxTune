@@ -1,5 +1,15 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Global non-spring transition update in 0.3.0:
+
+- Convert UIView spring animations to ease-in-out non-spring transitions in apps and SpringBoard.
+- Export SpringBoard SBFAnimationSettings and SBFFluidBehaviorSettings as duration-based BSAnimationSettings with ease-in-out timing, removing spring bounce globally.
+- Default the animation duration multiplier to 1.00; changing it scales the non-spring transition duration.
+- Keep BeginFromCurrentState for option-based UIView transitions so interrupted animations continue from the visible state.
+- Add a top-right "注销" button in Settings; it posts a Darwin notification and lets SpringBoard restart itself.
+- Turning off "调整动画" restores native spring behavior.
+- No device animation, folder or respring validation has been performed.
+
 0.2.0-based non-spring transition update in 0.2.5:
 
 - Use the 0.2.0 feature set as the base, retaining the thermal toggles and battery-related switches.

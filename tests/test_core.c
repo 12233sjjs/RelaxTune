@@ -26,8 +26,8 @@ static void testAnimation(void) {
     }
     assert(RTClampFactor(-1.0) == 0.0);
     assert(RTClampFactor(11.0) == 10.0);
-    assert(RTClampFactor(NAN) == 0.9);
-    assert(RTClampFactor(INFINITY) == 0.9);
+    assert(RTClampFactor(NAN) == 1.0);
+    assert(RTClampFactor(INFINITY) == 1.0);
     assert(RTClampFactor(0.914) == 0.91);
     assert(RTClampFactor(0.916) == 0.92);
     assert(RTClampFactor(9.999) == 10.0);

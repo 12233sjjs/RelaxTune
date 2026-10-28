@@ -2,6 +2,7 @@
 #import <Preferences/PSSpecifier.h>
 #import <Preferences/PSTableCell.h>
 #import <UIKit/UIKit.h>
+#import <notify.h>
 #include <math.h>
 #include "Animation.h"
 
@@ -35,7 +36,7 @@ static void RTWritePreference(NSString *key, id value) {
         _factorStepper.wraps = NO;
         _factorStepper.accessibilityLabel = @"Animation duration multiplier";
         id saved = RTReadPreference(@"AnimationFactor");
-        double factor = [saved isKindOfClass:NSNumber.class] ? [saved doubleValue] : 0.9;
+        double factor = [saved isKindOfClass:NSNumber.class] ? [saved doubleValue] : 1.0;
         _factorStepper.value = RTClampFactor(factor);
         [_factorStepper addTarget:self action:@selector(factorChanged:) forControlEvents:UIControlEventValueChanged];
         self.accessoryView = _factorStepper;
@@ -59,6 +60,24 @@ static void RTWritePreference(NSString *key, id value) {
 @end
 
 @implementation RTRootController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.navigationItem.rightBarButtonItem =
+        [[UIBarButtonItem alloc] initWithTitle:@"注销" style:UIBarButtonItemStylePlain
+                                       target:self action:@selector(rtRespring)];
+}
+- (void)rtRespring {
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:@"注销 SpringBoard"
+                                            message:@"保存设置并重新加载桌面？"
+                                     preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"注销" style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        notify_post("com.12233sjjs.relaxtune.respring");
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
 - (NSArray *)specifiers {
     if (!_specifiers) _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
     return _specifiers;

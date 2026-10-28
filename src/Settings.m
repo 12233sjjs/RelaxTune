@@ -15,7 +15,7 @@ atomic_bool RTAudio = false;
 atomic_bool RTZombieReap = false;
 atomic_bool RTPocketThermal = false;
 atomic_bool RTSunlightThermal = false;
-_Atomic(double) RTAnimationFactor = 0.9;
+_Atomic(double) RTAnimationFactor = 1.0;
 
 static BOOL RTRead(NSString *key, BOOL fallback) {
     CFPropertyListRef value = CFPreferencesCopyAppValue((__bridge CFStringRef)key,
@@ -38,7 +38,7 @@ void RTLoadSettings(void) {
     atomic_store(&RTSunlightThermal, RTRead(@"SunlightThermal", NO));
     CFPropertyListRef raw = CFPreferencesCopyAppValue(CFSTR("AnimationFactor"),
                                                      CFSTR("com.12233sjjs.relaxtune"));
-    double factor = 0.9;
+    double factor = 1.0;
     if (raw) {
         id value = CFBridgingRelease(raw);
         if ([value isKindOfClass:NSNumber.class]) factor = [value doubleValue];
