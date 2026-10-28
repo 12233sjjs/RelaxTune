@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Folder transition stability rollback in 0.2.3:
+
+- Remove the global SpringBoard SBFAnimationSettings speed hook and SBFFluidBehaviorSettings response hook so folder open/close transitions use stock timing.
+- Revert the 0.2.1 120 Hz duration alignment and BeginFromCurrentState changes; app animation scaling returns to the 0.1.7 duration behavior.
+- Keep app-launch and system folder spring animations native; app-internal UIView animations remain adjustable.
+- Change zombie reaping to disabled by default; it remains an opt-in switch under 网络与电池.
+- If folder opening still fails, disable the two thermal switches and the zombie reaping switch, then restart SpringBoard.
+- No device folder or animation validation has been performed.
+
 Spring speed regression fix in 0.2.2:
 
 - Fix SBFAnimationSettings speed direction: multiplier values below 1 now increase spring speed instead of slowing it down.

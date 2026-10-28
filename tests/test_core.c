@@ -22,9 +22,7 @@ static void testAnimation(void) {
     for (unsigned i = 0; i <= 1000; i++) {
         double value = i / 100.0;
         assert(fabs(RTClampFactor(value) - value) < 1e-12);
-        double expected = value == 0.0 ? 0.0 :
-            fmax(1.0 / 120.0, round(0.5 * value * 120.0) / 120.0);
-        assert(fabs(RTScaledDuration(0.5, value) - expected) < 1e-12);
+        assert(fabs(RTScaledDuration(0.5, value) - 0.5 * value) < 1e-12);
     }
     assert(RTClampFactor(-1.0) == 0.0);
     assert(RTClampFactor(11.0) == 10.0);
@@ -36,18 +34,6 @@ static void testAnimation(void) {
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
-    assert(fabs(RTFrameAlignedDuration(0.091, 120.0) - 11.0 / 120.0) < 1e-12);
-    assert(fabs(RTFrameAlignedDuration(0.091, 60.0) - 5.0 / 60.0) < 1e-12);
-    assert(fabs(RTScaledDurationForFrameRate(0.5, 0.91, 60.0) - 27.0 / 60.0) < 1e-12);
-    assert(RTFrameAlignedDuration(0.0, 120.0) == 0.0);
-    assert(RTFrameAlignedDuration(NAN, 120.0) != RTFrameAlignedDuration(NAN, 120.0));
-    assert(fabs(RTScaledSpringSpeed(1.0, 0.9) - 1.0 / 0.9) < 1e-12);
-    assert(fabs(RTScaledSpringSpeed(0.5, 2.0) - 0.25) < 1e-12);
-    assert(fabs(RTScaledSpringSpeed(1.0, 0.0) - 10.0) < 1e-12);
-    assert(fabs(RTScaledSpringSpeed(1.0, 0.01) - 10.0) < 1e-12);
-    assert(RTScaledSpringSpeed(0.0, 0.5) == 0.0);
-    assert(isnan(RTScaledSpringSpeed(NAN, 0.5)));
-    assert(RTScaledSpringSpeed(-1.0, 2.0) == -1.0);
 }
 
 static void testGamePower(void) {

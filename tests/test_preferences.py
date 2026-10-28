@@ -42,7 +42,7 @@ for key, item in switches.items():
 assert switches["Audio"]["default"] is False
 assert switches["GamePerformance"]["default"] is True
 assert switches["HighRefresh"]["default"] is False
-assert switches["ZombieReap"]["default"] is True
+assert switches["ZombieReap"]["default"] is False
 assert switches["PocketThermal"]["default"] is False
 assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)

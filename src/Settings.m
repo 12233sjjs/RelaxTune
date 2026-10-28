@@ -12,7 +12,7 @@ atomic_bool RTLowPower = true;
 atomic_bool RTGamePerformance = true;
 atomic_bool RTHighRefresh = false;
 atomic_bool RTAudio = false;
-atomic_bool RTZombieReap = true;
+atomic_bool RTZombieReap = false;
 atomic_bool RTPocketThermal = false;
 atomic_bool RTSunlightThermal = false;
 _Atomic(double) RTAnimationFactor = 0.9;
@@ -33,7 +33,7 @@ void RTLoadSettings(void) {
     atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
     atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", NO));
     atomic_store(&RTAudio, RTRead(@"Audio", NO));
-    atomic_store(&RTZombieReap, RTRead(@"ZombieReap", YES));
+    atomic_store(&RTZombieReap, RTRead(@"ZombieReap", NO));
     atomic_store(&RTPocketThermal, RTRead(@"PocketThermal", NO));
     atomic_store(&RTSunlightThermal, RTRead(@"SunlightThermal", NO));
     CFPropertyListRef raw = CFPreferencesCopyAppValue(CFSTR("AnimationFactor"),
