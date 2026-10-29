@@ -16,9 +16,11 @@ static char RTFrameRequestKey;
 static __thread BOOL RTApplyingRefresh;
 
 static BOOL RTPrefer120(void) {
+    NSProcessInfo *process = NSProcessInfo.processInfo;
     return atomic_load(&RTEnabled) && atomic_load(&RTHighRefresh) &&
            UIScreen.mainScreen.maximumFramesPerSecond >= 120 &&
-           !NSProcessInfo.processInfo.lowPowerModeEnabled;
+           !process.lowPowerModeEnabled &&
+           process.thermalState < NSProcessInfoThermalStateSerious;
 }
 
 // Keep the caller's request so disabling the option restores the original pacing.
@@ -105,6 +107,10 @@ void RTRefreshRateDidChange(void) {
         RTLoadSettings();
         RTDisplayLinks = [NSHashTable weakObjectsHashTable];
         [NSNotificationCenter.defaultCenter addObserverForName:NSProcessInfoPowerStateDidChangeNotification
+            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+                RTRefreshRateDidChange();
+            }];
+        [NSNotificationCenter.defaultCenter addObserverForName:NSProcessInfoThermalStateDidChangeNotification
             object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
                 RTRefreshRateDidChange();
             }];

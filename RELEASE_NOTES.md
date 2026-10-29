@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Thermal throttling mitigation in 0.3.1:
+
+- Stop forcing SBThermalController isInSunlight to YES; the "锁定阳光暴晒" switch now only suppresses SpringBoard thermal level/blocked responses and leaves the real sunlight state visible to other system components.
+- Remove the global SBFFluidBehaviorSettings conversion that replaced every fluid interaction with a fixed 0.3-second animation, reducing continuous animation load and heat.
+- Keep the duration-based non-spring conversion for SBFAnimationSettings transitions.
+- Make the 120 Hz preference yield to Serious/Critical thermal state and react to thermal-state changes.
+- These changes target automatic throttling caused by forced sunlight state, excessive fluid animation and 120 Hz heat.
+- No device thermal or frequency validation has been performed.
+
 Global non-spring transition update in 0.3.0:
 
 - Convert UIView spring animations to ease-in-out non-spring transitions in apps and SpringBoard.

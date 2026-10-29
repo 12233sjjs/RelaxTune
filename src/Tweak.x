@@ -316,19 +316,6 @@ static void RTUpdateZombieReaping(void) {
 %end
 %end
 
-%group RTFluidNonSpring
-%hook SBFFluidBehaviorSettings
-- (id)BSAnimationSettings {
-    if (!RTAnimationHooksActive()) return %orig;
-    double response = RTNumberForKey(self, @"response");
-    if (response <= 0.0 || response > 2.0) response = 0.30;
-    id settings = RTSmoothBSAnimationSettings(
-        RTScaledDuration(response, atomic_load(&RTAnimationFactor)), 0.0);
-    return settings ?: %orig;
-}
-%end
-%end
-
 %group RTPocketThermal
 %hook SBPocketStateMonitor
 - (long long)pocketState {
@@ -344,10 +331,6 @@ static void RTUpdateZombieReaping(void) {
 
 %group RTSunlightThermal
 %hook SBThermalController
-- (BOOL)isInSunlight {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return YES;
-    return %orig;
-}
 - (long long)level {
     if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return 0;
     return %orig;
@@ -418,9 +401,6 @@ static void RTUpdateZombieReaping(void) {
             %init(RTSpringPower);
             if (NSClassFromString(@"SBFAnimationSettings")) {
                 %init(RTSBFNonSpring);
-            }
-            if (NSClassFromString(@"SBFFluidBehaviorSettings")) {
-                %init(RTFluidNonSpring);
             }
             if (NSClassFromString(@"SBPocketStateMonitor")) {
                 %init(RTPocketThermal);
