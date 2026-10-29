@@ -55,7 +55,8 @@ jobs:
           brew list ldid >/dev/null 2>&1 || brew install ldid
           brew list dpkg >/dev/null 2>&1 || brew install dpkg
           git clone https://github.com/roothide/theos.git "$THEOS"
-          git -C "$THEOS" checkout cfba89a53a05b4a1b822121158acc3669c20602f
+          git -C "$THEOS" checkout cfba89a53a05b4a1b822121158acc3669c20602f ||
+            git -C "$THEOS" checkout HEAD
           git -C "$THEOS" submodule update --init --recursive
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           mkdir -p "$THEOS/sdks"
