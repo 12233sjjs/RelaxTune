@@ -20,6 +20,7 @@ static BOOL RTManagesPower;
 static BOOL RTGameRestoreLowPower;
 static BOOL RTApplyingPower;
 static BOOL RTPowerWritePending;
+static NSUInteger RTPowerRequestSerial;
 static BOOL RTFrontmostGame;
 static dispatch_source_t RTZombieTimer;
 static int RTRespringToken = -1;
@@ -67,9 +68,11 @@ static id RTPowerController(void) {
 }
 
 static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL)) {
+    NSUInteger serial = ++RTPowerRequestSerial;
     RTPowerWritePending = YES;
     void (^finished)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
+            if (serial != RTPowerRequestSerial) return;
             BOOL changed = success && ((NSInteger (*)(id, SEL))objc_msgSend)(saver,
                 NSSelectorFromString(@"getPowerMode")) == target;
             RTPowerWritePending = NO;
@@ -77,6 +80,12 @@ static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL))
             if (changed) RTApplyPower();
         });
     };
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
+        dispatch_get_main_queue(), ^{
+            if (serial != RTPowerRequestSerial || !RTPowerWritePending) return;
+            RTPowerWritePending = NO;
+            RTApplyPower();
+        });
     SEL asyncWrite = NSSelectorFromString(@"setPowerMode:fromSource:withCompletion:");
     NSMethodSignature *signature = [saver methodSignatureForSelector:asyncWrite];
     if (signature.numberOfArguments == 5 &&
@@ -207,10 +216,16 @@ static double RTNumberForKey(id object, NSString *key) {
 }
 
 static id RTSmoothBSAnimationSettings(double duration, double delay) {
-    Class factoryClass = NSClassFromString(@"BSAnimationSettings");
-    SEL factory = NSSelectorFromString(@"settingsWithDuration:delay:timingFunction:");
+    static Class factoryClass;
+    static SEL factory;
+    static CAMediaTimingFunction *timing;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        factoryClass = NSClassFromString(@"BSAnimationSettings");
+        factory = NSSelectorFromString(@"settingsWithDuration:delay:timingFunction:");
+        timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    });
     if (!factoryClass || ![factoryClass respondsToSelector:factory]) return nil;
-    id timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     return ((id (*)(id, SEL, double, double, id))objc_msgSend)(
         factoryClass, factory, duration, delay, timing);
 }

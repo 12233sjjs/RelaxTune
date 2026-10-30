@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Low-power write and animation overhead hardening in 0.3.2:
+
+- Add a three-second timeout and serial guard to low-power mode writes so a missing completion callback cannot leave power-mode changes permanently blocked.
+- Retry power policy evaluation after a timed-out write, including unlock/charging restoration.
+- Cache the BSAnimationSettings factory class, selector and ease-in-out timing function instead of resolving them for every transition.
+- These changes reduce the chance of a stuck low-power/downclock state and lower SpringBoard animation conversion overhead.
+- No device power, thermal or frequency validation has been performed.
+
 Thermal throttling mitigation in 0.3.1:
 
 - Stop forcing SBThermalController isInSunlight to YES; the "锁定阳光暴晒" switch now only suppresses SpringBoard thermal level/blocked responses and leaves the real sunlight state visible to other system components.
