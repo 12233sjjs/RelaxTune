@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Global 120 Hz animation update in 0.3.3:
+
+- Enable the 120 Hz preference by default.
+- Request CAFrameRateRange 120/120/120 and a high-frame-rate reason for SBFAnimationSettings-based transitions, including app launch/loading and folder transitions.
+- Keep non-spring ease-in-out timing for those transitions.
+- Remove thermal-state gating from the 120 Hz preference as requested; low-power mode can still cap refresh.
+- This increases heat and battery use during sustained animation and is not a thermal-safe configuration.
+- No device 120 Hz or loading-animation validation has been performed.
+
 Low-power write and animation overhead hardening in 0.3.2:
 
 - Add a three-second timeout and serial guard to low-power mode writes so a missing completion callback cannot leave power-mode changes permanently blocked.

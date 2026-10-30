@@ -215,6 +215,20 @@ static double RTNumberForKey(id object, NSString *key) {
     return [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : 0.0;
 }
 
+static void RTApply120FrameRate(id settings) {
+    if (!settings || !atomic_load(&RTHighRefresh) ||
+        UIScreen.mainScreen.maximumFramesPerSecond < 120) return;
+    SEL setRange = NSSelectorFromString(@"setPreferredFrameRateRange:");
+    if ([settings respondsToSelector:setRange]) {
+        CAFrameRateRange range = CAFrameRateRangeMake(120, 120, 120);
+        ((void (*)(id, SEL, CAFrameRateRange))objc_msgSend)(settings, setRange, range);
+    }
+    SEL setReason = NSSelectorFromString(@"setHighFrameRateReason:");
+    if ([settings respondsToSelector:setReason]) {
+        ((void (*)(id, SEL, unsigned int))objc_msgSend)(settings, setReason, 1114123);
+    }
+}
+
 static id RTSmoothBSAnimationSettings(double duration, double delay) {
     static Class factoryClass;
     static SEL factory;
@@ -226,8 +240,10 @@ static id RTSmoothBSAnimationSettings(double duration, double delay) {
         timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     });
     if (!factoryClass || ![factoryClass respondsToSelector:factory]) return nil;
-    return ((id (*)(id, SEL, double, double, id))objc_msgSend)(
+    id settings = ((id (*)(id, SEL, double, double, id))objc_msgSend)(
         factoryClass, factory, duration, delay, timing);
+    RTApply120FrameRate(settings);
+    return settings;
 }
 
 static void RTUpdateZombieReaping(void) {

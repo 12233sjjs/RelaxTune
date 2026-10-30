@@ -41,7 +41,7 @@ for key, item in switches.items():
     assert type(item["default"]) is bool, key
 assert switches["Audio"]["default"] is False
 assert switches["GamePerformance"]["default"] is True
-assert switches["HighRefresh"]["default"] is False
+assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
 assert switches["PocketThermal"]["default"] is False
 assert switches["SunlightThermal"]["default"] is False

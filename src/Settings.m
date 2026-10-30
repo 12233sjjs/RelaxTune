@@ -10,7 +10,7 @@ atomic_bool RTAnimations = true;
 atomic_bool RTNetwork = true;
 atomic_bool RTLowPower = true;
 atomic_bool RTGamePerformance = true;
-atomic_bool RTHighRefresh = false;
+atomic_bool RTHighRefresh = true;
 atomic_bool RTAudio = false;
 atomic_bool RTZombieReap = false;
 atomic_bool RTPocketThermal = false;
@@ -31,7 +31,7 @@ void RTLoadSettings(void) {
     atomic_store(&RTNetwork, RTRead(@"Network", YES));
     atomic_store(&RTLowPower, RTRead(@"LowPower", YES));
     atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
-    atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", NO));
+    atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", YES));
     atomic_store(&RTAudio, RTRead(@"Audio", NO));
     atomic_store(&RTZombieReap, RTRead(@"ZombieReap", NO));
     atomic_store(&RTPocketThermal, RTRead(@"PocketThermal", NO));
