@@ -229,6 +229,13 @@ static void RTApply120FrameRate(id settings) {
     }
 }
 
+static void RTSetAnimationSpeed(id settings, double speed) {
+    SEL setSpeed = NSSelectorFromString(@"setSpeed:");
+    if (settings && speed > 0.0 && [settings respondsToSelector:setSpeed]) {
+        ((void (*)(id, SEL, double))objc_msgSend)(settings, setSpeed, speed);
+    }
+}
+
 static id RTSmoothBSAnimationSettings(double duration, double delay) {
     static Class factoryClass;
     static SEL factory;
@@ -336,13 +343,23 @@ static void RTUpdateZombieReaping(void) {
 %group RTSBFNonSpring
 %hook SBFAnimationSettings
 - (id)BSAnimationSettings {
-    if (!RTAnimationHooksActive()) return %orig;
+    id original = %orig;
+    if (!RTAnimationHooksActive()) {
+        RTApply120FrameRate(original);
+        return original;
+    }
     double duration = RTNumberForKey(self, @"duration");
     double delay = RTNumberForKey(self, @"delay");
+    double speed = RTNumberForKey(self, @"speed");
     if (duration <= 0.0 || duration > 2.0) duration = 0.30;
     id settings = RTSmoothBSAnimationSettings(
         RTScaledDuration(duration, atomic_load(&RTAnimationFactor)), delay);
-    return settings ?: %orig;
+    if (settings) {
+        RTSetAnimationSpeed(settings, speed);
+        return settings;
+    }
+    RTApply120FrameRate(original);
+    return original;
 }
 %end
 %end

@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Independent 120 Hz and transition continuity update in 0.3.4:
+
+- Decouple 120 Hz from the master switch, animation toggle and animation duration multiplier; only the 120 Hz preference and low-power mode affect it.
+- Apply the 120 Hz frame-range request to original animations even when animation conversion is disabled.
+- Preserve the original SBFAnimationSettings speed when creating non-spring ease-in-out transitions.
+- Keep BeginFromCurrentState for option-based UIView transitions and original delay/duration values for smoother interruption and handoff.
+- No device 120 Hz or transition-continuity validation has been performed.
+
 Global 120 Hz animation update in 0.3.3:
 
 - Enable the 120 Hz preference by default.

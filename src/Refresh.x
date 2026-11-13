@@ -16,7 +16,7 @@ static char RTFrameRequestKey;
 static __thread BOOL RTApplyingRefresh;
 
 static BOOL RTPrefer120(void) {
-    return atomic_load(&RTEnabled) && atomic_load(&RTHighRefresh) &&
+    return atomic_load(&RTHighRefresh) &&
            UIScreen.mainScreen.maximumFramesPerSecond >= 120 &&
            !NSProcessInfo.processInfo.lowPowerModeEnabled;
 }
