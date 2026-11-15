@@ -1,5 +1,11 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Animation exclusion settings crash fix in 0.3.9:
+
+- Replace navigation to an unsupported custom Preferences child controller with an in-place action sheet flow on the existing PSListController.
+- Keep adding and removing Bundle IDs in the animation-only exclusion preference.
+- No device Settings launch or exclusion-list UI validation has been performed.
+
 Animation exclusion list and audio module removal in 0.3.8:
 
 - Add a Settings list for app Bundle IDs whose UIKit and SpringBoard animation adjustments should be skipped; edits apply through the existing preferences notification.

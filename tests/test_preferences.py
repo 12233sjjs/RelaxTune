@@ -46,11 +46,11 @@ assert switches["PocketThermal"]["default"] is False
 assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
 assert any(item.get("label") == "动画屏蔽名单" and item.get("detail") ==
-           "RTAnimationExclusionController" for item in settings)
+           "RTEditAnimationExclusions:" for item in settings)
 assert not any("音效" in item.get("label", "") or item.get("key") == "Audio"
                for item in settings)
 if len(sys.argv) == 1:
     controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
-    assert "@implementation RTAnimationExclusionController" in controller_source
-    assert 'RTWritePreference(@"AnimationExcludedApps"' in controller_source
+    assert "rtEditAnimationExclusions:(PSSpecifier *)specifier" in controller_source
+    assert "RTAnimationExclusionController" not in controller_source
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

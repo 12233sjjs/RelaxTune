@@ -56,85 +56,6 @@ static void RTWritePreference(NSString *key, id value) {
 }
 @end
 
-@interface RTAnimationExclusionController : UITableViewController
-@property(nonatomic, copy) NSArray<NSString *> *identifiers;
-@end
-
-@implementation RTAnimationExclusionController
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.title = @"动画屏蔽名单";
-    self.navigationItem.rightBarButtonItem = self.editButtonItem;
-    id saved = RTReadPreference(@"AnimationExcludedApps");
-    self.identifiers = [saved isKindOfClass:NSArray.class] ? saved : @[];
-    self.tableView.allowsSelectionDuringEditing = NO;
-    self.tableView.tableFooterView = [UIView new];
-    self.navigationItem.leftItemsSupplementBackButton = YES;
-    self.navigationItem.prompt = @"按 Bundle ID 屏蔽动画调整";
-    self.navigationItem.rightBarButtonItems = @[
-        self.editButtonItem,
-        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
-            target:self action:@selector(addIdentifier)]
-    ];
-}
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.identifiers.count;
-}
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    static NSString *const reuse = @"AnimationExclusion";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuse];
-    if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuse];
-    cell.textLabel.text = self.identifiers[indexPath.row];
-    cell.detailTextLabel.text = nil;
-    cell.selectionStyle = UITableViewCellSelectionStyleNone;
-    return cell;
-}
-- (void)saveIdentifiers {
-    RTWritePreference(@"AnimationExcludedApps", self.identifiers);
-}
-- (void)addIdentifier {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"添加应用 Bundle ID"
-        message:nil preferredStyle:UIAlertControllerStyleAlert];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
-        field.placeholder = @"例如 com.example.app";
-        field.autocapitalizationType = UITextAutocapitalizationTypeNone;
-        field.autocorrectionType = UITextAutocorrectionTypeNo;
-        field.clearButtonMode = UITextFieldViewModeWhileEditing;
-    }];
-    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"添加" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        NSString *identifier = [alert.textFields.firstObject.text stringByTrimmingCharactersInSet:
-            NSCharacterSet.whitespaceAndNewlineCharacterSet];
-        NSCharacterSet *invalid = [[NSCharacterSet characterSetWithCharactersInString:
-            @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-"] invertedSet];
-        BOOL duplicate = [self.identifiers indexOfObjectPassingTest:^BOOL(NSString *entry, NSUInteger index, BOOL *stop) {
-            return [entry caseInsensitiveCompare:identifier] == NSOrderedSame;
-        }] != NSNotFound;
-        if (!identifier.length || [identifier rangeOfCharacterFromSet:invalid].location != NSNotFound || duplicate) return;
-        self.identifiers = [self.identifiers arrayByAddingObject:identifier];
-        [self saveIdentifiers];
-        [self.tableView reloadData];
-    }]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-- (void)setEditing:(BOOL)editing animated:(BOOL)animated {
-    [super setEditing:editing animated:animated];
-    [self.tableView setEditing:editing animated:animated];
-}
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    return YES;
-}
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)style
-    forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (style != UITableViewCellEditingStyleDelete) return;
-    NSMutableArray *updated = [self.identifiers mutableCopy];
-    [updated removeObjectAtIndex:indexPath.row];
-    self.identifiers = updated;
-    [self saveIdentifiers];
-    [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-}
-@end
-
 @interface RTRootController : PSListController
 @end
 
@@ -166,5 +87,51 @@ static void RTWritePreference(NSString *key, id value) {
 }
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
     RTWritePreference([specifier propertyForKey:@"key"], value);
+}
+- (void)rtEditAnimationExclusions:(PSSpecifier *)specifier {
+    id saved = RTReadPreference(@"AnimationExcludedApps");
+    NSArray<NSString *> *identifiers = [saved isKindOfClass:NSArray.class] ? saved : @[];
+    UIAlertController *menu = [UIAlertController alertControllerWithTitle:@"动画屏蔽名单"
+        message:identifiers.count ? [identifiers componentsJoinedByString:@"\n"] : @"名单为空"
+        preferredStyle:UIAlertControllerStyleAlert];
+    [menu addAction:[UIAlertAction actionWithTitle:@"添加 Bundle ID" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        UIAlertController *input = [UIAlertController alertControllerWithTitle:@"添加 Bundle ID"
+            message:nil preferredStyle:UIAlertControllerStyleAlert];
+        [input addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = @"com.example.app";
+            field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+            field.autocorrectionType = UITextAutocorrectionTypeNo;
+        }];
+        [input addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+        [input addAction:[UIAlertAction actionWithTitle:@"添加" style:UIAlertActionStyleDefault handler:^(UIAlertAction *confirm) {
+            NSString *identifier = [input.textFields.firstObject.text stringByTrimmingCharactersInSet:
+                NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            NSCharacterSet *invalid = [[NSCharacterSet characterSetWithCharactersInString:
+                @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-"] invertedSet];
+            BOOL duplicate = [identifiers indexOfObjectPassingTest:^BOOL(NSString *entry, NSUInteger index, BOOL *stop) {
+                return [entry caseInsensitiveCompare:identifier] == NSOrderedSame;
+            }] != NSNotFound;
+            if (!identifier.length || [identifier rangeOfCharacterFromSet:invalid].location != NSNotFound || duplicate) return;
+            RTWritePreference(@"AnimationExcludedApps", [identifiers arrayByAddingObject:identifier]);
+        }]];
+        [self presentViewController:input animated:YES completion:nil];
+    }]];
+    if (identifiers.count) {
+        [menu addAction:[UIAlertAction actionWithTitle:@"删除名单项" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+            UIAlertController *remove = [UIAlertController alertControllerWithTitle:@"选择要删除的 Bundle ID"
+                message:nil preferredStyle:UIAlertControllerStyleAlert];
+            for (NSString *identifier in identifiers) {
+                [remove addAction:[UIAlertAction actionWithTitle:identifier style:UIAlertActionStyleDestructive handler:^(UIAlertAction *selected) {
+                    NSMutableArray *updated = [identifiers mutableCopy];
+                    [updated removeObject:identifier];
+                    RTWritePreference(@"AnimationExcludedApps", updated);
+                }]];
+            }
+            [remove addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+            [self presentViewController:remove animated:YES completion:nil];
+        }]];
+    }
+    [menu addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:menu animated:YES completion:nil];
 }
 @end
