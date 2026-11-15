@@ -1,5 +1,11 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Animation exclusion action fix in 0.4.0:
+
+- Bind the Settings row through the Preferences `action` selector instead of `detail`, so tapping it invokes the in-place list editor rather than attempting controller navigation.
+- Keep fade-style SpringBoard launch/app-switch transitions out of this change; iOS 16.6.1 private transition targets have not been verified, and changing SBFAnimationSettings does not alter view alpha.
+- No device Settings or animation validation has been performed.
+
 Animation exclusion settings crash fix in 0.3.9:
 
 - Replace navigation to an unsupported custom Preferences child controller with an in-place action sheet flow on the existing PSListController.

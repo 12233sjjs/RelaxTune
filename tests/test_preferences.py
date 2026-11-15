@@ -45,8 +45,8 @@ assert switches["ZombieReap"]["default"] is False
 assert switches["PocketThermal"]["default"] is False
 assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
-assert any(item.get("label") == "动画屏蔽名单" and item.get("detail") ==
-           "RTEditAnimationExclusions:" for item in settings)
+assert any(item.get("action") == "rtEditAnimationExclusions:" and "detail" not in item
+           for item in settings)
 assert not any("音效" in item.get("label", "") or item.get("key") == "Audio"
                for item in settings)
 if len(sys.argv) == 1:

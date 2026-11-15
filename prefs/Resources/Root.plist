@@ -13,7 +13,7 @@
     <dict><key>cell</key><string>PSStaticTextCell</string><key>cellClass</key><string>RTFactorCell</string>
         <key>label</key><string>动画时长比例</string><key>id</key><string>AnimationFactor</string></dict>
     <dict><key>cell</key><string>PSButtonCell</string><key>label</key><string>动画屏蔽名单</string>
-        <key>detail</key><string>RTEditAnimationExclusions:</string></dict>
+        <key>action</key><string>rtEditAnimationExclusions:</string></dict>
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>系统动画120Hz优先</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>HighRefresh</string><key>default</key><true/></dict>
