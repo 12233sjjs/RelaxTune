@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+SpringBoard speed-only smoothing update in 0.3.6:
+
+- Apply the animation multiplier to SpringBoard playback speed only; keep the native duration and ease-in-out non-spring timing unchanged to avoid double scaling on app launch and app switching.
+- Bound playback speed to 0.1x through 10x; 1.00x preserves the source speed and 0.00x uses the capped maximum speed.
+- Leave all 120 Hz behavior unchanged.
+- No device launch, app-switching, folder, or playback-speed validation has been performed.
+
 Smooth non-spring transition update in 0.3.5:
 
 - Use an explicit ease-in-out curve for option-based app and SpringBoard transitions, preserving existing non-curve options and continuing interrupted animations from their current state.

@@ -34,6 +34,11 @@ static void testAnimation(void) {
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 1.0) - 1.0) < 1e-12);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 2.0) - 0.5) < 1e-12);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 0.5) - 2.0) < 1e-12);
+    assert(RTSmoothPlaybackSpeed(1.0, 0.0) == 10.0);
+    assert(RTSmoothPlaybackSpeed(NAN, 1.0) == 1.0);
 }
 
 static void testGamePower(void) {

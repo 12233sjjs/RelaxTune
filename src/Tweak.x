@@ -353,10 +353,11 @@ static void RTUpdateZombieReaping(void) {
     double delay = RTNumberForKey(self, @"delay");
     double speed = RTNumberForKey(self, @"speed");
     if (duration <= 0.0 || duration > 2.0) duration = 0.30;
+    double factor = atomic_load(&RTAnimationFactor);
     id settings = RTSmoothBSAnimationSettings(
-        RTScaledDuration(duration, atomic_load(&RTAnimationFactor)), delay);
+        duration, delay);
     if (settings) {
-        RTSetAnimationSpeed(settings, speed);
+        RTSetAnimationSpeed(settings, RTSmoothPlaybackSpeed(speed, factor));
         return settings;
     }
     RTApply120FrameRate(original);
