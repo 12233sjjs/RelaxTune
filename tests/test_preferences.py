@@ -33,17 +33,23 @@ assert entry["cell"] == "PSLinkCell"
 assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
-assert set(switches) == {"Enabled", "Animations", "Network", "LowPower", "Audio",
+assert set(switches) == {"Enabled", "Animations", "Network", "LowPower",
                          "GamePerformance", "HighRefresh", "ZombieReap",
                          "PocketThermal", "SunlightThermal"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
-assert switches["Audio"]["default"] is False
 assert switches["GamePerformance"]["default"] is True
 assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
 assert switches["PocketThermal"]["default"] is False
 assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
+assert any(item.get("label") == "动画屏蔽名单" and item.get("detail") ==
+           "RTAnimationExclusionController" for item in settings)
+assert not any("音效" in item.get("label", "") or item.get("key") == "Audio"
+               for item in settings)
+controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
+assert "@implementation RTAnimationExclusionController" in controller_source
+assert 'RTWritePreference(@"AnimationExcludedApps"' in controller_source
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

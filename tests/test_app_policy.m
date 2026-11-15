@@ -15,6 +15,15 @@ int main(void) {
                 @"com.tencent.smoba": @NO
             }
         };
+        assert(RTShouldLoadMainTweak(@"com.apple.springboard", NO));
+        assert(RTShouldLoadMainTweak(@"com.example.blocked", YES));
+        assert(RTShouldLoadMainTweak(@"com.example.allowed", YES));
+        assert(!RTShouldLoadMainTweak(@"com.example.daemon", NO));
+        assert(RTShouldLoadMainTweak(@"com.example.daemon", YES));
+        assert(RTIsAnimationExcluded(@"com.example.blocked", @[@"com.example.blocked"]));
+        assert(RTIsAnimationExcluded(@"com.example.blocked", @[@"COM.EXAMPLE.BLOCKED"]));
+        assert(!RTIsAnimationExcluded(@"com.example.allowed", @[@"com.example.blocked"]));
+        assert(!RTIsAnimationExcluded(nil, @[@"com.example.blocked"]));
         assert(RTIsExcludedApp(@"com.tencent.smoba", nil));
         assert(RTIsExcludedApp(@"com.tencent.smoba", configuration));
         assert(!RTIsExcludedApp(@"com.tencent.smoba.other", configuration));

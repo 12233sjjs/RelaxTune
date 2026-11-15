@@ -71,3 +71,16 @@ BOOL RTShouldLoadAppHooks(void) {
 #endif
     return !RTIsExcludedApp(bundle.bundleIdentifier, configuration);
 }
+
+BOOL RTShouldLoadMainTweak(NSString *bundleIdentifier, BOOL isApplicationBundle) {
+    return [bundleIdentifier isEqualToString:@"com.apple.springboard"] || isApplicationBundle;
+}
+
+BOOL RTIsAnimationExcluded(NSString *identifier, NSArray *excludedIdentifiers) {
+    if (!identifier.length || ![excludedIdentifiers isKindOfClass:NSArray.class]) return NO;
+    for (id entry in excludedIdentifiers) {
+        if ([entry isKindOfClass:NSString.class] &&
+            [entry caseInsensitiveCompare:identifier] == NSOrderedSame) return YES;
+    }
+    return NO;
+}

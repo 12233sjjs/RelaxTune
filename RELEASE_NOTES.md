@@ -1,5 +1,20 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Animation exclusion list and audio module removal in 0.3.8:
+
+- Add a Settings list for app Bundle IDs whose UIKit and SpringBoard animation adjustments should be skipped; edits apply through the existing preferences notification.
+- Do not consult the Relaxin blacklist for animation decisions. The local exclusion list affects animation hooks only.
+- Remove the experimental audio tweak from the package and its Settings switch; retain source files outside the build target.
+- No device UI, launch, app-switching, audio-removal, or stability validation has been performed.
+
+SpringBoard animation loading fix in 0.3.7:
+
+- Fix the main tweak's process gate: SpringBoard is not an `.app` bundle, so the previous app-only check returned before installing any SpringBoard animation hooks.
+- Load the main animation tweak in SpringBoard and application bundles; do not apply the Relaxin app blacklist to this main tweak as requested.
+- Leave the independent refresh-rate and audio tweak loading gates unchanged.
+- This enables the existing SpringBoard speed and non-spring animation settings hook; it does not convert launch or app-switch visuals into a fade transition.
+- No device launch, app-switching, fade, folder, or stability validation has been performed.
+
 SpringBoard speed-only smoothing update in 0.3.6:
 
 - Apply the animation multiplier to SpringBoard playback speed only; keep the native duration and ease-in-out non-spring timing unchanged to avoid double scaling on app launch and app switching.

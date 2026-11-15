@@ -4,22 +4,15 @@ THEOS_PACKAGE_SCHEME ?= rootless
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = RelaxTune RelaxTuneAudio
+TWEAK_NAME = RelaxTune
 RelaxTune_FILES = src/Tweak.x src/Refresh.x src/Settings.m src/PowerPolicy.c
 RelaxTune_FRAMEWORKS = UIKit QuartzCore Foundation
 RelaxTune_CFLAGS = -Isrc
 RelaxTune_OBJCFLAGS = -fobjc-arc
 
-RelaxTuneAudio_FILES = src/Audio.x src/Settings.m src/DSP.c
-RelaxTuneAudio_FRAMEWORKS = UIKit Foundation AudioToolbox AVFAudio
-RelaxTuneAudio_CFLAGS = -Isrc
-RelaxTuneAudio_OBJCFLAGS = -fobjc-arc
-
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 RelaxTune_CFLAGS += -DRT_ROOTHIDE=1
-RelaxTuneAudio_CFLAGS += -DRT_ROOTHIDE=1
 RelaxTune_LDFLAGS += -lroothide
-RelaxTuneAudio_LDFLAGS += -lroothide
 RelaxTunePrefs_LDFLAGS += -lroothide
 endif
 

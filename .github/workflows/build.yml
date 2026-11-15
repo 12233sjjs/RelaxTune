@@ -74,13 +74,15 @@ jobs:
           mkdir -p work/extracted
           dpkg-deb -x packages/*.deb work/extracted
           python3 tests/test_preferences.py work/extracted
-          for name in RelaxTune RelaxTuneAudio; do
-            path="$(find work/extracted -name "$name.dylib" -print -quit)"
-            test -n "$path"
-            file "$path"
-            lipo -archs "$path"
-            otool -L "$path"
-          done
+          path="$(find work/extracted -name RelaxTune.dylib -print -quit)"
+          test -n "$path"
+          file "$path"
+          lipo -archs "$path"
+          otool -L "$path"
+          if find work/extracted -name RelaxTuneAudio.dylib -print -quit | grep -q .; then
+            echo "Audio module must not be packaged" >&2
+            exit 1
+          fi
           prefs="$(find work/extracted -path '*/RelaxTunePrefs.bundle/RelaxTunePrefs' -print -quit)"
           test -n "$prefs"
           lipo -archs "$prefs"

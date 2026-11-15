@@ -206,8 +206,12 @@ static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
 }
 
 static BOOL RTAnimationHooksActive(void) {
-    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-           !UIAccessibilityIsReduceMotionEnabled();
+    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+          !UIAccessibilityIsReduceMotionEnabled())) return NO;
+    NSString *bundleIdentifier = NSBundle.mainBundle.bundleIdentifier;
+    NSArray *excluded = CFBridgingRelease(CFPreferencesCopyAppValue(
+        CFSTR("AnimationExcludedApps"), CFSTR("com.12233sjjs.relaxtune")));
+    return !RTIsAnimationExcluded(bundleIdentifier, excluded);
 }
 
 static double RTNumberForKey(id object, NSString *key) {
@@ -438,8 +442,11 @@ static void RTUpdateZombieReaping(void) {
 
 %ctor {
     @autoreleasepool {
-        if (!RTShouldLoadAppHooks()) return;
-        RTManagesPower = [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
+        NSBundle *mainBundle = NSBundle.mainBundle;
+        NSString *bundleIdentifier = mainBundle.bundleIdentifier;
+        BOOL isApplicationBundle = [mainBundle.bundlePath.pathExtension isEqualToString:@"app"];
+        if (!RTShouldLoadMainTweak(bundleIdentifier, isApplicationBundle)) return;
+        RTManagesPower = [bundleIdentifier isEqualToString:@"com.apple.springboard"];
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
