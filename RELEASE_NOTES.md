@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Non-spring UIKit timing update in 0.4.1:
+
+- Apply the explicit ease-in-out curve when converting UIView spring API calls to non-spring animations; retain existing duration, delay, and non-curve options.
+- Leave the animation speed multiplier and all 120 Hz behavior unchanged.
+- This changes timing only; it does not provide alpha fade for SpringBoard app launch or app switching.
+- No device animation validation has been performed.
+
 Animation exclusion action fix in 0.4.0:
 
 - Bind the Settings row through the Preferences `action` selector instead of `detail`, so tapping it invokes the in-place list editor rather than attempting controller navigation.

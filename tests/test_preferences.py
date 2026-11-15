@@ -53,4 +53,6 @@ if len(sys.argv) == 1:
     controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
     assert "rtEditAnimationExclusions:(PSSpecifier *)specifier" in controller_source
     assert "RTAnimationExclusionController" not in controller_source
+    tweak_source = (root / "src/Tweak.x").read_text(encoding="utf-8")
+    assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

@@ -301,7 +301,7 @@ static void RTUpdateZombieReaping(void) {
     RTAnimationDepth++;
     @try {
         NSTimeInterval value = RTConvertingSpringAnimation ? duration : RTDuration(duration);
-        UIViewAnimationOptions smoothed = RTConvertingSpringAnimation ? options : RTSmoothOptions(options);
+        UIViewAnimationOptions smoothed = RTSmoothOptions(options);
         %orig(value, delay, smoothed, animations, completion);
     }
     @finally { RTAnimationDepth--; }
