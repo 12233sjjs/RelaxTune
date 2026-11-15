@@ -201,7 +201,8 @@ static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
                                        UIViewAnimationOptionCurveEaseOut |
                                        UIViewAnimationOptionCurveLinear;
     options &= ~curveMask;
-    return options | UIViewAnimationOptionBeginFromCurrentState;
+    return options | UIViewAnimationOptionCurveEaseInOut |
+           UIViewAnimationOptionBeginFromCurrentState;
 }
 
 static BOOL RTAnimationHooksActive(void) {

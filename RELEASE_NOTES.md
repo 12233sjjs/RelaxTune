@@ -1,5 +1,11 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Smooth non-spring transition update in 0.3.5:
+
+- Use an explicit ease-in-out curve for option-based app and SpringBoard transitions, preserving existing non-curve options and continuing interrupted animations from their current state.
+- Keep the 120 Hz request independent from animation conversion and duration scaling.
+- No device animation, folder, or launch-transition validation has been performed.
+
 Independent 120 Hz and transition continuity update in 0.3.4:
 
 - Decouple 120 Hz from the master switch, animation toggle and animation duration multiplier; only the 120 Hz preference and low-power mode affect it.
