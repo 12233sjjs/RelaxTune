@@ -74,7 +74,7 @@ jobs:
           echo "9daceaff6cf94346594a12f9ef9c2ea23de15475b516f9e33c20871a018c098b  work/frameworks/Preferences.framework/Preferences.tbd" | shasum -a 256 -c -
       - name: Test animation hooks against Objective-C fixtures
         run: |
-          perl "$THEOS/logos/bin/logos.pl" -c generator=internal src/Animation.x > work/Animation-test.m
+          perl "$THEOS/bin/logos.pl" -c generator=internal src/Animation.x > work/Animation-test.m
           clang -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -fobjc-arc \
             -framework Foundation -framework QuartzCore -Itests/stubs -Isrc \
             work/Animation-test.m tests/test_animation_hooks.m src/Settings.m -o work/test_animation_hooks
