@@ -3,6 +3,7 @@
 
 extern atomic_bool RTEnabled;
 extern atomic_bool RTAnimations;
+extern atomic_bool RTAnimationExcluded;
 extern atomic_bool RTNetwork;
 extern atomic_bool RTTCPNoDelay;
 extern atomic_bool RTLowPower;

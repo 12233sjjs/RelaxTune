@@ -7,6 +7,7 @@ extern const char *jbroot(const char *path);
 
 atomic_bool RTEnabled = true;
 atomic_bool RTAnimations = true;
+atomic_bool RTAnimationExcluded = false;
 atomic_bool RTNetwork = true;
 atomic_bool RTTCPNoDelay = false;
 atomic_bool RTLowPower = true;
@@ -28,6 +29,10 @@ static BOOL RTRead(NSString *key, BOOL fallback) {
 
 void RTLoadSettings(void) {
     CFPreferencesAppSynchronize(CFSTR("com.12233sjjs.relaxtune"));
+    id excluded = CFBridgingRelease(CFPreferencesCopyAppValue(
+        CFSTR("AnimationExcludedApps"), CFSTR("com.12233sjjs.relaxtune")));
+    atomic_store(&RTAnimationExcluded,
+        RTIsAnimationExcluded(NSBundle.mainBundle.bundleIdentifier, excluded));
     atomic_store(&RTAnimations, RTRead(@"Animations", YES));
     atomic_store(&RTNetwork, RTRead(@"Network", YES));
     atomic_store(&RTTCPNoDelay, RTRead(@"TCPNoDelay", NO));

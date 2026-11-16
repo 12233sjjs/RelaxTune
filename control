@@ -1,6 +1,6 @@
 Package: com.12233sjjs.relaxtune
 Name: cc优化系统
-Version: 0.4.3
+Version: 0.4.4
 Architecture: iphoneos-arm64
 Description: Animation controls, screen-off low power, connection waiting and optional TCP_NODELAY for Relaxin.
 Maintainer: 12233sjjs

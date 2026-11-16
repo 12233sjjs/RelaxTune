@@ -207,12 +207,8 @@ static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
 }
 
 static BOOL RTAnimationHooksActive(void) {
-    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-          !UIAccessibilityIsReduceMotionEnabled())) return NO;
-    NSString *bundleIdentifier = NSBundle.mainBundle.bundleIdentifier;
-    NSArray *excluded = CFBridgingRelease(CFPreferencesCopyAppValue(
-        CFSTR("AnimationExcludedApps"), CFSTR("com.12233sjjs.relaxtune")));
-    return !RTIsAnimationExcluded(bundleIdentifier, excluded);
+    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+           !atomic_load(&RTAnimationExcluded) && !UIAccessibilityIsReduceMotionEnabled();
 }
 
 static double RTNumberForKey(id object, NSString *key) {

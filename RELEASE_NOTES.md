@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Faster ease-out transitions in 0.4.4:
+
+- Reduce controlled UIKit animation durations by 20% at the same user factor (0.30 s becomes 0.24 s at factor 1.00). Apply the equivalent playback-speed change to the existing SpringBoard conversion, subject to its existing 0.1..10 speed bounds.
+- Keep the non-spring ease-out curve and BeginFromCurrentState behavior. Transition geometry, opacity targets, delays, and 120 Hz configuration are unchanged.
+- Keep the saved/default animation factor (default 1.00, range 0..10, step 0.01). At factor 1.25, duration scaling matches factor 1.00 in 0.4.3 for the controlled paths. Existing factor-zero semantics are unchanged.
+- Cache the current process animation exclusion when settings load/reload instead of reading preferences and scanning the list on every animation call. Settings notifications refresh this cache.
+- UIKit scaling remains limited to the existing 0.12..1.0 second input range. No new private transition hooks are added.
+- No iPhone frame-time measurements or device animation tests have been performed; faster scheduling does not establish higher FPS or smoother rendering.
+
 Ease-out animation timing in 0.4.3:
 
 - Preserve transition geometry and opacity targets. Use the system ease-out curve for a responsive start and gradual deceleration at the end, without adding a crossfade.

@@ -22,7 +22,12 @@ static void testAnimation(void) {
     for (unsigned i = 0; i <= 1000; i++) {
         double value = i / 100.0;
         assert(fabs(RTClampFactor(value) - value) < 1e-12);
-        assert(fabs(RTScaledDuration(0.5, value) - 0.5 * value) < 1e-12);
+        assert(fabs(RTScaledDuration(0.5, value) - 0.4 * value) < 1e-12);
+        if (value >= 0.13) {
+            double uiDuration = RTScaledDuration(0.5, value);
+            double sbDuration = 0.5 / RTSmoothPlaybackSpeed(1.0, value);
+            assert(fabs(uiDuration - sbDuration) < 1e-12);
+        }
     }
     assert(RTClampFactor(-1.0) == 0.0);
     assert(RTClampFactor(11.0) == 10.0);
@@ -34,11 +39,17 @@ static void testAnimation(void) {
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.0);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 1.0) - 1.0) < 1e-12);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 2.0) - 0.5) < 1e-12);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 0.5) - 2.0) < 1e-12);
+    assert(fabs(RTScaledDuration(0.3, 1.0) - 0.24) < 1e-12);
+    assert(fabs(RTScaledDuration(0.12, 1.0) - 0.096) < 1e-12);
+    assert(fabs(RTScaledDuration(1.0, 1.0) - 0.8) < 1e-12);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 1.0) - 1.25) < 1e-12);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 2.0) - 0.625) < 1e-12);
+    assert(fabs(RTSmoothPlaybackSpeed(1.0, 0.5) - 2.5) < 1e-12);
     assert(RTSmoothPlaybackSpeed(1.0, 0.0) == 10.0);
-    assert(RTSmoothPlaybackSpeed(NAN, 1.0) == 1.0);
+    assert(RTSmoothPlaybackSpeed(NAN, 1.0) == 1.25);
+    assert(RTSmoothPlaybackSpeed(INFINITY, 1.0) == 1.25);
+    assert(RTSmoothPlaybackSpeed(100.0, 0.01) == 10.0);
+    assert(RTSmoothPlaybackSpeed(0.01, 10.0) == 0.1);
 }
 
 static void testGamePower(void) {
