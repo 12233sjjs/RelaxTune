@@ -24,8 +24,6 @@ static NSUInteger RTPowerRequestSerial;
 static BOOL RTFrontmostGame;
 static dispatch_source_t RTZombieTimer;
 static int RTRespringToken = -1;
-static __thread unsigned RTAnimationDepth;
-static __thread BOOL RTConvertingSpringAnimation;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 static void RTApplyPower(void);
 static void RTUpdateZombieReaping(void);
@@ -186,74 +184,6 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
     });
 }
 
-static BOOL RTAnimationHooksActive(void);
-
-static NSTimeInterval RTDuration(NSTimeInterval duration) {
-    if (RTAnimationDepth == 1 && RTAnimationHooksActive() &&
-        duration >= 0.12 && duration <= 1.0) {
-        return RTScaledDuration(duration, atomic_load(&RTAnimationFactor));
-    }
-    return duration;
-}
-
-static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
-    if (!RTAnimationHooksActive()) return options;
-    UIViewAnimationOptions curveMask = UIViewAnimationOptionCurveEaseIn |
-                                       UIViewAnimationOptionCurveEaseOut |
-                                       UIViewAnimationOptionCurveLinear;
-    options &= ~curveMask;
-    return options | UIViewAnimationOptionCurveEaseOut |
-           UIViewAnimationOptionBeginFromCurrentState;
-}
-
-static BOOL RTAnimationHooksActive(void) {
-    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-           !atomic_load(&RTAnimationExcluded) && !UIAccessibilityIsReduceMotionEnabled();
-}
-
-static double RTNumberForKey(id object, NSString *key) {
-    if (![object respondsToSelector:NSSelectorFromString(key)]) return 0.0;
-    id value = [object valueForKey:key];
-    return [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : 0.0;
-}
-
-static void RTApply120FrameRate(id settings) {
-    if (!settings || !atomic_load(&RTHighRefresh) ||
-        UIScreen.mainScreen.maximumFramesPerSecond < 120) return;
-    SEL setRange = NSSelectorFromString(@"setPreferredFrameRateRange:");
-    if ([settings respondsToSelector:setRange]) {
-        CAFrameRateRange range = CAFrameRateRangeMake(120, 120, 120);
-        ((void (*)(id, SEL, CAFrameRateRange))objc_msgSend)(settings, setRange, range);
-    }
-    SEL setReason = NSSelectorFromString(@"setHighFrameRateReason:");
-    if ([settings respondsToSelector:setReason]) {
-        ((void (*)(id, SEL, unsigned int))objc_msgSend)(settings, setReason, 1114123);
-    }
-}
-
-static void RTSetAnimationSpeed(id settings, double speed) {
-    SEL setSpeed = NSSelectorFromString(@"setSpeed:");
-    if (settings && speed > 0.0 && [settings respondsToSelector:setSpeed]) {
-        ((void (*)(id, SEL, double))objc_msgSend)(settings, setSpeed, speed);
-    }
-}
-
-static id RTSmoothBSAnimationSettings(double duration, double delay) {
-    static Class factoryClass;
-    static SEL factory;
-    static CAMediaTimingFunction *timing;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        factoryClass = NSClassFromString(@"BSAnimationSettings");
-        factory = NSSelectorFromString(@"settingsWithDuration:delay:timingFunction:");
-        timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
-    });
-    if (!factoryClass || ![factoryClass respondsToSelector:factory]) return nil;
-    id settings = ((id (*)(id, SEL, double, double, id))objc_msgSend)(
-        factoryClass, factory, duration, delay, timing);
-    RTApply120FrameRate(settings);
-    return settings;
-}
 
 static void RTUpdateZombieReaping(void) {
     if (!RTManagesPower) return;
@@ -276,37 +206,6 @@ static void RTUpdateZombieReaping(void) {
 }
 
 %group RTApps
-%hook UIView
-+ (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations {
-    if (!RTAnimationHooksActive()) {
-        %orig(duration, animations);
-        return;
-    }
-    // The options overload owns duration scaling, including nested calls.
-    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
-                   animations:animations completion:nil];
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations
-                completion:(void (^)(BOOL))completion {
-    if (!RTAnimationHooksActive()) {
-        %orig(duration, animations, completion);
-        return;
-    }
-    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
-                   animations:animations completion:completion];
-}
-+ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
-                   options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
-                completion:(void (^)(BOOL))completion {
-    RTAnimationDepth++;
-    @try {
-        NSTimeInterval value = RTConvertingSpringAnimation ? duration : RTDuration(duration);
-        UIViewAnimationOptions smoothed = RTSmoothOptions(options);
-        %orig(value, delay, smoothed, animations, completion);
-    }
-    @finally { RTAnimationDepth--; }
-}
-%end
 
 %hook NSURLSessionConfiguration
 + (NSURLSessionConfiguration *)defaultSessionConfiguration {
@@ -322,54 +221,6 @@ static void RTUpdateZombieReaping(void) {
 %end
 %end
 
-%group RTSpringAnimations
-%hook UIView
-+ (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
-    usingSpringWithDamping:(CGFloat)damping initialSpringVelocity:(CGFloat)velocity
-                   options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
-                completion:(void (^)(BOOL))completion {
-    if (!RTAnimationHooksActive()) {
-        %orig(duration, delay, damping, velocity, options, animations, completion);
-        return;
-    }
-    RTAnimationDepth++;
-    BOOL wasConverting = RTConvertingSpringAnimation;
-    @try {
-        RTConvertingSpringAnimation = YES;
-        [UIView animateWithDuration:RTDuration(duration) delay:delay
-                           options:RTSmoothOptions(options) animations:animations completion:completion];
-    } @finally {
-        RTConvertingSpringAnimation = wasConverting;
-        RTAnimationDepth--;
-    }
-}
-%end
-%end
-
-%group RTSBFNonSpring
-%hook SBFAnimationSettings
-- (id)BSAnimationSettings {
-    id original = %orig;
-    if (!RTAnimationHooksActive()) {
-        RTApply120FrameRate(original);
-        return original;
-    }
-    double duration = RTNumberForKey(self, @"duration");
-    double delay = RTNumberForKey(self, @"delay");
-    double speed = RTNumberForKey(self, @"speed");
-    if (duration <= 0.0 || duration > 2.0) duration = 0.30;
-    double factor = atomic_load(&RTAnimationFactor);
-    id settings = RTSmoothBSAnimationSettings(
-        duration, delay);
-    if (settings) {
-        RTSetAnimationSpeed(settings, RTSmoothPlaybackSpeed(speed, factor));
-        return settings;
-    }
-    RTApply120FrameRate(original);
-    return original;
-}
-%end
-%end
 
 %group RTPocketThermal
 %hook SBPocketStateMonitor
@@ -452,14 +303,11 @@ static void RTUpdateZombieReaping(void) {
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
-        %init(RTSpringAnimations);
+        RTInstallAnimationHooks(RTManagesPower);
         if (RTManagesPower) {
             notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,
                                       dispatch_get_main_queue(), ^(int token) { exit(0); });
             %init(RTSpringPower);
-            if (NSClassFromString(@"SBFAnimationSettings")) {
-                %init(RTSBFNonSpring);
-            }
             if (NSClassFromString(@"SBPocketStateMonitor")) {
                 %init(RTPocketThermal);
             }

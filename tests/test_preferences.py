@@ -18,12 +18,16 @@ if len(sys.argv) > 1:
     bundle = library / "PreferenceBundles/RelaxTunePrefs.bundle"
     info_file = bundle / "Info.plist"
     root_file = bundle / "Root.plist"
+    filter_file = library / "MobileSubstrate/DynamicLibraries/RelaxTune.plist"
     assert (bundle / "RelaxTunePrefs").is_file(), "Missing settings executable"
     assert (library / "ccSystem/system_tweaks.sh").is_file(), "Missing manual kernel module"
 else:
     entry_file = root / "layout/Library/PreferenceLoader/Preferences/RelaxTune.plist"
     info_file = root / "prefs/Resources/Info.plist"
     root_file = root / "prefs/Resources/Root.plist"
+    filter_file = root / "RelaxTune.plist"
+
+assert set(read(filter_file)["Filter"]["Bundles"]) == {"com.apple.UIKit", "com.apple.springboard"}
 
 entry = read(entry_file)["entry"]
 info = read(info_file)
@@ -54,6 +58,6 @@ if len(sys.argv) == 1:
     controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
     assert "rtEditAnimationExclusions:(PSSpecifier *)specifier" in controller_source
     assert "RTAnimationExclusionController" not in controller_source
-    tweak_source = (root / "src/Tweak.x").read_text(encoding="utf-8")
+    tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
     assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

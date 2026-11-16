@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Animation application fixes in 0.4.5:
+
+- Fix a concrete no-op: the iOS 16 BSAnimationSettings factory returns an immutable object without setSpeed:. The old code silently skipped the speed write; its double setter cast also did not match the mutable class float setter. Pass the scaled duration into the immutable factory instead.
+- Install ordinary UIView animation hooks in SpringBoard as well as apps. Add duration-based UIViewPropertyAnimator initializers and the running factory, using non-spring ease-out timing and a shared nesting guard against double scaling. Preserve callbacks, delays and animator identity/lifecycle.
+- Explicitly include com.apple.springboard in the injection filter alongside UIKit. This is a coverage precaution, not evidence that the old filter failed on the device.
+- Keep the 0.4.4 speed multiplier, user settings and 120 Hz behavior. No global fluid-response or Core Animation speed hook is introduced.
+- Add runtime regression tests that install the production Logos hook source on Objective-C fixtures, reproduce the immutable-object no-op, and verify forwarded values, nested scaling, callbacks, exclusions, disabled state and Reduce Motion. These are macOS fixtures, not iOS device tests.
+- The missing property-animator hooks and immutable settings write are confirmed code defects. Their contribution to the reported device symptom remains unmeasured; jailbreak injection, other tweaks and private fluid transitions still require device evidence.
+
 Faster ease-out transitions in 0.4.4:
 
 - Reduce controlled UIKit animation durations by 20% at the same user factor (0.30 s becomes 0.24 s at factor 1.00). Apply the equivalent playback-speed change to the existing SpringBoard conversion, subject to its existing 0.1..10 speed bounds.

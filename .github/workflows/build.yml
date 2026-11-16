@@ -72,6 +72,13 @@ jobs:
             https://raw.githubusercontent.com/theos/sdks/0222fd5413cf4b9af096f37b4621afa2688572f7/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd \
             -o work/frameworks/Preferences.framework/Preferences.tbd
           echo "9daceaff6cf94346594a12f9ef9c2ea23de15475b516f9e33c20871a018c098b  work/frameworks/Preferences.framework/Preferences.tbd" | shasum -a 256 -c -
+      - name: Test animation hooks against Objective-C fixtures
+        run: |
+          perl "$THEOS/logos/bin/logos.pl" -c generator=internal src/Animation.x > work/Animation-test.m
+          clang -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -fobjc-arc \
+            -framework Foundation -framework QuartzCore -Itests/stubs -Isrc \
+            work/Animation-test.m tests/test_animation_hooks.m src/Settings.m -o work/test_animation_hooks
+          ./work/test_animation_hooks
       - name: Build ${{ matrix.scheme }}
         run: |
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=${{ matrix.scheme }} -j2

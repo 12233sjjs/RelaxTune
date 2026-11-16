@@ -20,3 +20,4 @@ BOOL RTShouldLoadAppHooks(void);
 BOOL RTShouldLoadMainTweak(NSString *bundleIdentifier, BOOL isApplicationBundle);
 BOOL RTIsAnimationExcluded(NSString *identifier, NSArray *excludedIdentifiers);
 void RTRefreshRateDidChange(void);
+void RTInstallAnimationHooks(BOOL springboard);
