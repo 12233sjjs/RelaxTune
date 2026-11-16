@@ -71,16 +71,16 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 @end
 
 // The iOS 16 factory result is immutable and intentionally has no setSpeed:.
-@interface BSAnimationSettings : NSObject
+@interface RTTestAnimationSettings : NSObject
 @property (readonly) double duration;
 @property (readonly) double delay;
-@property (readonly) id timing;
+@property (readonly) id timingFunction;
 + (id)settingsWithDuration:(double)d delay:(double)delay timingFunction:(id)timing;
 @end
-@implementation BSAnimationSettings
+@implementation RTTestAnimationSettings
 + (id)settingsWithDuration:(double)d delay:(double)delay timingFunction:(id)t {
-    BSAnimationSettings *settings = [self new];
-    settings->_duration = d; settings->_delay = delay; settings->_timing = t;
+    RTTestAnimationSettings *settings = [self new];
+    settings->_duration = d; settings->_delay = delay; settings->_timingFunction = t;
     return settings;
 }
 @end
@@ -92,7 +92,7 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 @end
 @implementation SBFAnimationSettings
 - (id)BSAnimationSettings {
-    return [BSAnimationSettings settingsWithDuration:self.duration delay:self.delay timingFunction:nil];
+    return [RTTestAnimationSettings settingsWithDuration:self.duration delay:self.delay timingFunction:nil];
 }
 @end
 
@@ -138,24 +138,27 @@ static void testPropertyAnimator(void) {
     near(a.duration, 5); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
 }
 static void testSpringBoard(void) {
-    BSAnimationSettings *legacy = [BSAnimationSettings settingsWithDuration:0.3 delay:0.15 timingFunction:nil];
+    RTTestAnimationSettings *legacy = [RTTestAnimationSettings settingsWithDuration:0.3 delay:0.15 timingFunction:nil];
     SEL setter = NSSelectorFromString(@"setSpeed:");
     if ([legacy respondsToSelector:setter])
         ((void (*)(id, SEL, double))objc_msgSend)(legacy, setter, 1.25);
     near(legacy.duration, 0.3); // reproduces the 0.4.4 no-op on an immutable result
     SBFAnimationSettings *source = [SBFAnimationSettings new];
     source.duration = 0.3; source.delay = 0.15; source.speed = 1;
-    BSAnimationSettings *result = [source BSAnimationSettings];
+    id result = [source BSAnimationSettings];
     assert(![result respondsToSelector:NSSelectorFromString(@"setSpeed:")]);
-    near(result.duration, 0.24); near(result.delay, 0.15); near(source.duration, 0.3);
-    assert(result.timing);
+    near([result duration], 0.24); near([result delay], 0.15); near(source.duration, 0.3);
+    assert([result timingFunction]);
+    assert(![result isKindOfClass:RTTestAnimationSettings.class]);
     source.speed = 2;
     near([[source BSAnimationSettings] duration], 0.12);
     atomic_store(&RTAnimationFactor, 2);
     near([[source BSAnimationSettings] duration], 0.24);
     atomic_store(&RTAnimationFactor, 1);
     assert(!RTCreateAnimationSettings(Nil, 0.3, 0, 1, 1, nil));
-    assert(!RTCreateAnimationSettings(BSAnimationSettings.class, NAN, 0, 1, 1, nil));
+    assert(!RTCreateAnimationSettings(RTTestAnimationSettings.class, NAN, 0, 1, 1, nil));
+    RTTestAnimationSettings *fixture = RTCreateAnimationSettings(RTTestAnimationSettings.class, 0.3, 0, 1, 1, nil);
+    near(fixture.duration, 0.24);
     source.duration = 3;
     near([[source BSAnimationSettings] duration], 3);
 }
