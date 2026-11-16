@@ -8,6 +8,7 @@ extern const char *jbroot(const char *path);
 atomic_bool RTEnabled = true;
 atomic_bool RTAnimations = true;
 atomic_bool RTNetwork = true;
+atomic_bool RTTCPNoDelay = false;
 atomic_bool RTLowPower = true;
 atomic_bool RTGamePerformance = true;
 atomic_bool RTHighRefresh = true;
@@ -29,6 +30,7 @@ void RTLoadSettings(void) {
     CFPreferencesAppSynchronize(CFSTR("com.12233sjjs.relaxtune"));
     atomic_store(&RTAnimations, RTRead(@"Animations", YES));
     atomic_store(&RTNetwork, RTRead(@"Network", YES));
+    atomic_store(&RTTCPNoDelay, RTRead(@"TCPNoDelay", NO));
     atomic_store(&RTLowPower, RTRead(@"LowPower", YES));
     atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
     atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", YES));

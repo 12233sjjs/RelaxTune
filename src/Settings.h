@@ -4,6 +4,7 @@
 extern atomic_bool RTEnabled;
 extern atomic_bool RTAnimations;
 extern atomic_bool RTNetwork;
+extern atomic_bool RTTCPNoDelay;
 extern atomic_bool RTLowPower;
 extern atomic_bool RTGamePerformance;
 extern atomic_bool RTHighRefresh;

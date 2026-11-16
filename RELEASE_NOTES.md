@@ -1,5 +1,14 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
 
+Optional TCP small-packet latency setting in 0.4.2:
+
+- Add TCPNoDelay, off by default and gated by the master switch. Set TCP_NODELAY once on new IPv4/IPv6 TCP sockets created through the hooked socket symbol in injected app processes.
+- Preserve socket results and errno, ignore option failures, and allow subsequent app setsockopt calls to override the initial choice. No connection retries or traffic capture.
+- Exclude SpringBoard and non-app processes from this hook. UDP/QUIC, system networking services and paths bypassing socket are not covered.
+- Existing sockets retain their options; fully quit and reopen the app after changing the switch for a clean comparison.
+- Disabling Nagle can help small TCP writes but can increase packet overhead and battery use. It does not boost radio signal, remove carrier limits or guarantee download/game improvements. No global priority override is installed.
+- Tests exercise real local TCP sockets on Linux and macOS; no iPhone latency, throughput or battery measurements have been performed.
+
 Non-spring UIKit timing update in 0.4.1:
 
 - Apply the explicit ease-in-out curve when converting UIView spring API calls to non-spring animations; retain existing duration, delay, and non-curve options.

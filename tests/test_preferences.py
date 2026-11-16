@@ -33,13 +33,14 @@ assert entry["cell"] == "PSLinkCell"
 assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
-assert set(switches) == {"Enabled", "Animations", "Network", "LowPower",
+assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay", "LowPower",
                          "GamePerformance", "HighRefresh", "ZombieReap",
                          "PocketThermal", "SunlightThermal"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
 assert switches["GamePerformance"]["default"] is True
+assert switches["TCPNoDelay"]["default"] is False
 assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
 assert switches["PocketThermal"]["default"] is False

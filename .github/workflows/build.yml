@@ -28,6 +28,10 @@ jobs:
                   plistlib.load(stream)
               print("OK", path)
           PY
+      - name: Test TCP socket policy
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -Isrc tests/test_network.c -o work/test_network
+          ./work/test_network
       - name: Validate manual kernel module
         run: |
           sh -n layout/Library/ccSystem/system_tweaks.sh
@@ -50,6 +54,8 @@ jobs:
           clang -std=c11 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -Isrc \
             tests/test_app_policy.m src/Settings.m -o work/test_app_policy
           ./work/test_app_policy
+          clang -std=c11 -Wall -Wextra -Werror -Isrc tests/test_network.c -o work/test_network
+          ./work/test_network
       - name: Install packaging tools and RootHide Theos
         run: |
           brew list ldid >/dev/null 2>&1 || brew install ldid
