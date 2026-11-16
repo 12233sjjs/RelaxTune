@@ -20,7 +20,7 @@ static void testTCP(int domain, int protocol) {
     errno = EAGAIN;
     RTConfigureNewSocket(fd, domain, SOCK_STREAM, protocol, true);
     assert(errno == EAGAIN);
-    assert(noDelay(fd) == 1);
+    assert(noDelay(fd) != 0);
     // The application can override the initial choice without interference.
     assert(setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &off, sizeof(off)) == 0);
     assert(noDelay(fd) == 0);
