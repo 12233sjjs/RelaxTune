@@ -1,4 +1,12 @@
-Target: iPhone 13 Pro, iOS 16.6.1, Relaxin v0.5.6.
+Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
+
+Ease-out animation timing in 0.4.3:
+
+- Preserve transition geometry and opacity targets. Use the system ease-out curve for a responsive start and gradual deceleration at the end, without adding a crossfade.
+- Apply the curve to the existing SpringBoard non-spring settings conversion and UIKit duration APIs, including the two convenience overloads.
+- Keep animation-factor scaling and the independent 120 Hz configuration unchanged. No PerformanceTweak binary or hooks are included.
+- Respect the animation switch, Reduce Motion and the current process animation exclusion for duration/options as well as spring conversion. Preserve nested spring conversion state.
+- Does not cover every private transition, interactive gesture animator or animation API. Device appearance, folder opening and interrupted transitions still require iOS 16.6.1 testing.
 
 Optional TCP small-packet latency setting in 0.4.2:
 

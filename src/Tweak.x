@@ -186,22 +186,23 @@ static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
     });
 }
 
+static BOOL RTAnimationHooksActive(void);
+
 static NSTimeInterval RTDuration(NSTimeInterval duration) {
-    if (RTAnimationDepth == 1 && atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-        !UIAccessibilityIsReduceMotionEnabled() && duration >= 0.12 && duration <= 1.0) {
+    if (RTAnimationDepth == 1 && RTAnimationHooksActive() &&
+        duration >= 0.12 && duration <= 1.0) {
         return RTScaledDuration(duration, atomic_load(&RTAnimationFactor));
     }
     return duration;
 }
 
 static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
-    if (!(atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
-          !UIAccessibilityIsReduceMotionEnabled())) return options;
+    if (!RTAnimationHooksActive()) return options;
     UIViewAnimationOptions curveMask = UIViewAnimationOptionCurveEaseIn |
                                        UIViewAnimationOptionCurveEaseOut |
                                        UIViewAnimationOptionCurveLinear;
     options &= ~curveMask;
-    return options | UIViewAnimationOptionCurveEaseInOut |
+    return options | UIViewAnimationOptionCurveEaseOut |
            UIViewAnimationOptionBeginFromCurrentState;
 }
 
@@ -249,7 +250,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay) {
     dispatch_once(&once, ^{
         factoryClass = NSClassFromString(@"BSAnimationSettings");
         factory = NSSelectorFromString(@"settingsWithDuration:delay:timingFunction:");
-        timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+        timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
     });
     if (!factoryClass || ![factoryClass respondsToSelector:factory]) return nil;
     id settings = ((id (*)(id, SEL, double, double, id))objc_msgSend)(
@@ -281,19 +282,22 @@ static void RTUpdateZombieReaping(void) {
 %group RTApps
 %hook UIView
 + (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations {
-    RTAnimationDepth++;
-    @try {
-        %orig(RTDuration(duration), animations);
+    if (!RTAnimationHooksActive()) {
+        %orig(duration, animations);
+        return;
     }
-    @finally { RTAnimationDepth--; }
+    // The options overload owns duration scaling, including nested calls.
+    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
+                   animations:animations completion:nil];
 }
 + (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
-    RTAnimationDepth++;
-    @try {
-        %orig(RTDuration(duration), animations, completion);
+    if (!RTAnimationHooksActive()) {
+        %orig(duration, animations, completion);
+        return;
     }
-    @finally { RTAnimationDepth--; }
+    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
+                   animations:animations completion:completion];
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
                    options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
@@ -333,12 +337,13 @@ static void RTUpdateZombieReaping(void) {
         return;
     }
     RTAnimationDepth++;
+    BOOL wasConverting = RTConvertingSpringAnimation;
     @try {
         RTConvertingSpringAnimation = YES;
         [UIView animateWithDuration:RTDuration(duration) delay:delay
                            options:RTSmoothOptions(options) animations:animations completion:completion];
     } @finally {
-        RTConvertingSpringAnimation = NO;
+        RTConvertingSpringAnimation = wasConverting;
         RTAnimationDepth--;
     }
 }
