@@ -1,18 +1,15 @@
 #include "PowerPolicy.h"
 #include <string.h>
 
-RTPowerAction RTPowerDecision(bool enabled, bool locked, bool charging,
-                              bool currentLowPower, bool ownsLowPower) {
-    if (ownsLowPower && !currentLowPower) return RTForgetOwnership;
-    bool wanted = enabled && locked && !charging;
-    if (ownsLowPower && !wanted) return RTRestorePower;
-    if (wanted && !currentLowPower) return RTEnablePower;
-    return RTNoChange;
+bool RTShouldRestoreLegacyPower(bool ownedLowPower, bool currentLowPower,
+                                bool restoreManualLowPower) {
+    return ownedLowPower && currentLowPower && !restoreManualLowPower;
 }
 
 RTGamePowerAction RTGamePowerDecision(bool enabled, bool frontmostGame, bool locked,
                                       bool currentLowPower, bool restoreLowPower) {
-    if (enabled && frontmostGame && !locked)
+    if (locked) return RTGameNoChange;
+    if (enabled && frontmostGame)
         return currentLowPower ? RTGameDisablePower : RTGameNoChange;
     if (restoreLowPower)
         return currentLowPower ? RTGameClearRestore : RTGameRestorePower;

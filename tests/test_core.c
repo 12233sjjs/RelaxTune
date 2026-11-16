@@ -5,17 +5,15 @@
 #include "PowerPolicy.h"
 #include "Animation.h"
 
-static void testPower(void) {
-    assert(RTPowerDecision(true, true, false, false, false) == RTEnablePower);
-    assert(RTPowerDecision(true, true, false, true, false) == RTNoChange);
-    assert(RTPowerDecision(true, false, false, true, false) == RTNoChange);
-    assert(RTPowerDecision(true, false, false, true, true) == RTRestorePower);
-    assert(RTPowerDecision(true, true, true, true, true) == RTRestorePower);
-    assert(RTPowerDecision(false, true, false, true, true) == RTRestorePower);
-    assert(RTPowerDecision(true, true, false, false, true) == RTForgetOwnership);
-    assert(RTPowerDecision(true, true, false, true, true) == RTNoChange);
-    assert(RTPowerDecision(true, true, true, false, false) == RTNoChange);
-    assert(RTPowerDecision(true, false, false, false, false) == RTNoChange);
+static void testLegacyPower(void) {
+    assert(!RTShouldRestoreLegacyPower(false, false, false));
+    assert(!RTShouldRestoreLegacyPower(false, true, false));
+    assert(!RTShouldRestoreLegacyPower(false, false, true));
+    assert(!RTShouldRestoreLegacyPower(false, true, true));
+    assert(!RTShouldRestoreLegacyPower(true, false, false));
+    assert(RTShouldRestoreLegacyPower(true, true, false));
+    assert(!RTShouldRestoreLegacyPower(true, false, true));
+    assert(!RTShouldRestoreLegacyPower(true, true, true));
 }
 
 static void testAnimation(void) {
@@ -68,14 +66,20 @@ static void testGamePower(void) {
     // An originally disabled mode must not be enabled when the game exits.
     assert(RTGamePowerDecision(true, true, false, false, false) == RTGameNoChange);
     assert(RTGamePowerDecision(true, false, false, false, false) == RTGameNoChange);
-    assert(RTPowerDecision(true, false, false, true, true) == RTRestorePower);
 
-    // Locking or disabling protection restores a suspended manual mode.
-    assert(RTGamePowerDecision(true, true, true, false, true) == RTGameRestorePower);
+    // Locking suspends all game power writes, including restore-on-exit.
+    for (unsigned state = 0; state < 16; state++) {
+        assert(RTGamePowerDecision(state & 1, state & 2, true, state & 4, state & 8)
+               == RTGameNoChange);
+    }
+    // Lock/unlock without leaving the game must keep the suspended state.
+    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
+    assert(RTGamePowerDecision(true, true, true, false, true) == RTGameNoChange);
+    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
+    // Exiting the game or disabling the feature while unlocked still restores it.
     assert(RTGamePowerDecision(false, true, false, false, true) == RTGameRestorePower);
     assert(RTGamePowerDecision(false, true, false, true, true) == RTGameClearRestore);
     assert(RTGamePowerDecision(false, true, false, true, false) == RTGameNoChange);
-    assert(RTPowerDecision(true, true, false, true, false) == RTNoChange);
 }
 
 static double gain(double rate, double frequency) {
@@ -121,10 +125,10 @@ static void testDSP(void) {
 }
 
 int main(void) {
-    testPower();
+    testLegacyPower();
     testAnimation();
     testGamePower();
     testDSP();
-    puts("PASS: power ownership, game suspend/restore, animation 0..10/0.01, spring speed scaling, DSP response/stereo/headroom/reset");
+    puts("PASS: legacy power cleanup, locked-state no-op, game suspend/restore, animation 0..10/0.01, spring speed scaling, DSP response/stereo/headroom/reset");
     return 0;
 }

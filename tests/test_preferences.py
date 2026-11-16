@@ -21,6 +21,10 @@ if len(sys.argv) > 1:
     filter_file = library / "MobileSubstrate/DynamicLibraries/RelaxTune.plist"
     assert (bundle / "RelaxTunePrefs").is_file(), "Missing settings executable"
     assert (library / "ccSystem/system_tweaks.sh").is_file(), "Missing manual kernel module"
+    binary = (library / "MobileSubstrate/DynamicLibraries/RelaxTune.dylib").read_bytes()
+    for removed in (b"SBPocketStateMonitor", b"SBThermalController", b"RTLowPower",
+                    b"RTPocketThermal", b"RTSunlightThermal", b"RTPowerDecision"):
+        assert removed not in binary, f"Removed feature is still packaged: {removed!r}"
 else:
     entry_file = root / "layout/Library/PreferenceLoader/Preferences/RelaxTune.plist"
     info_file = root / "prefs/Resources/Info.plist"
@@ -37,9 +41,8 @@ assert entry["cell"] == "PSLinkCell"
 assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
-assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay", "LowPower",
-                         "GamePerformance", "HighRefresh", "ZombieReap",
-                         "PocketThermal", "SunlightThermal"}
+assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay",
+                         "GamePerformance", "HighRefresh", "ZombieReap"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
@@ -47,8 +50,6 @@ assert switches["GamePerformance"]["default"] is True
 assert switches["TCPNoDelay"]["default"] is False
 assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
-assert switches["PocketThermal"]["default"] is False
-assert switches["SunlightThermal"]["default"] is False
 assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
 assert any(item.get("action") == "rtEditAnimationExclusions:" and "detail" not in item
            for item in settings)

@@ -13,9 +13,8 @@
 #include "Animation.h"
 
 static int RTLockToken = -1;
-static BOOL RTLocked;
-static BOOL RTOwnsPower;
-static BOOL RTOverrideWhileLocked;
+static BOOL RTLocked = YES;
+static BOOL RTLegacyPowerCleanup;
 static BOOL RTManagesPower;
 static BOOL RTGameRestoreLowPower;
 static BOOL RTApplyingPower;
@@ -26,14 +25,8 @@ static dispatch_source_t RTZombieTimer;
 static int RTRespringToken = -1;
 static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
 static void RTApplyPower(void);
+static void RTReadLock(void);
 static void RTUpdateZombieReaping(void);
-
-static void RTSaveOwnership(BOOL owned) {
-    RTOwnsPower = owned;
-    CFPreferencesSetAppValue(CFSTR("OwnsLowPower"), owned ? kCFBooleanTrue : kCFBooleanFalse,
-                             (__bridge CFStringRef)RTDomain);
-    CFPreferencesAppSynchronize((__bridge CFStringRef)RTDomain);
-}
 
 static void RTSaveGameRestore(BOOL restore) {
     RTGameRestoreLowPower = restore;
@@ -70,7 +63,7 @@ static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL))
     RTPowerWritePending = YES;
     void (^finished)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (serial != RTPowerRequestSerial) return;
+            if (serial != RTPowerRequestSerial || !RTPowerWritePending) return;
             BOOL changed = success && ((NSInteger (*)(id, SEL))objc_msgSend)(saver,
                 NSSelectorFromString(@"getPowerMode")) == target;
             RTPowerWritePending = NO;
@@ -82,7 +75,8 @@ static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL))
         dispatch_get_main_queue(), ^{
             if (serial != RTPowerRequestSerial || !RTPowerWritePending) return;
             RTPowerWritePending = NO;
-            RTApplyPower();
+            ++RTPowerRequestSerial;
+            completion(NO);
         });
     SEL asyncWrite = NSSelectorFromString(@"setPowerMode:fromSource:withCompletion:");
     NSMethodSignature *signature = [saver methodSignatureForSelector:asyncWrite];
@@ -100,6 +94,7 @@ static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL))
 }
 
 static void RTApplyPowerImpl(void) {
+    RTReadLock();
     id saver = RTPowerController();
     SEL read = NSSelectorFromString(@"getPowerMode");
     SEL write = NSSelectorFromString(@"setPowerMode:fromSource:");
@@ -112,21 +107,24 @@ static void RTApplyPowerImpl(void) {
         [signature getArgumentTypeAtIndex:3][0] != '@') return;
     NSInteger current = ((NSInteger (*)(id, SEL))objc_msgSend)(saver, read);
     if (current != 0 && current != 1) return;
-    UIDeviceBatteryState battery = UIDevice.currentDevice.batteryState;
-    // An unknown battery state must not trigger power-mode changes.
-    if (battery == UIDeviceBatteryStateUnknown) return;
-    BOOL charging = battery == UIDeviceBatteryStateCharging || battery == UIDeviceBatteryStateFull;
+    if (RTLegacyPowerCleanup) {
+        // Consume the old ownership marker once; never retry cleanup after a failed write.
+        RTLegacyPowerCleanup = NO;
+        CFPreferencesSetAppValue(CFSTR("OwnsLowPower"), NULL, (__bridge CFStringRef)RTDomain);
+        CFPreferencesAppSynchronize((__bridge CFStringRef)RTDomain);
+        if (RTShouldRestoreLegacyPower(true, current == 1, RTGameRestoreLowPower)) {
+            RTRequestPower(saver, 0, ^(BOOL changed) {
+                if (!changed) NSLog(@"[RelaxTune] Legacy low-power cleanup was not confirmed.");
+            });
+            return;
+        }
+    }
     BOOL gameEnabled = atomic_load(&RTEnabled) && atomic_load(&RTGamePerformance);
-    BOOL gameActive = gameEnabled && RTFrontmostGame && !RTLocked;
     RTGamePowerAction gameAction = RTGamePowerDecision(gameEnabled, RTFrontmostGame, RTLocked,
                                                        current == 1, RTGameRestoreLowPower);
     if (gameAction == RTGameDisablePower) {
-        BOOL restoreManual = RTGameRestoreLowPower || !RTOwnsPower;
         RTRequestPower(saver, 0, ^(BOOL changed) {
-            if (changed) {
-                RTSaveGameRestore(restoreManual);
-                if (RTOwnsPower) RTSaveOwnership(NO);
-            }
+            if (changed) RTSaveGameRestore(YES);
         });
         return;
     }
@@ -138,23 +136,6 @@ static void RTApplyPowerImpl(void) {
     } else if (gameAction == RTGameClearRestore) {
         RTSaveGameRestore(NO);
     }
-    if (gameActive) {
-        if (RTOwnsPower) RTSaveOwnership(NO);
-        return;
-    }
-    BOOL enabled = atomic_load(&RTEnabled) && atomic_load(&RTLowPower);
-    RTPowerAction action = RTPowerDecision(enabled && !RTOverrideWhileLocked, RTLocked,
-                                           charging, current == 1, RTOwnsPower);
-    if (action == RTForgetOwnership) {
-        RTOverrideWhileLocked = RTLocked;
-        RTSaveOwnership(NO);
-        return;
-    }
-    if (action == RTNoChange) return;
-    NSInteger target = action == RTEnablePower ? 1 : 0;
-    RTRequestPower(saver, target, ^(BOOL changed) {
-        if (changed) RTSaveOwnership(target == 1);
-    });
 }
 
 static void RTApplyPower(void) {
@@ -166,12 +147,8 @@ static void RTApplyPower(void) {
 
 static void RTReadLock(void) {
     uint64_t state = 0;
-    if (RTLockToken < 0 || notify_get_state(RTLockToken, &state) != NOTIFY_STATUS_OK) return;
-    BOOL locked = state != 0;
-    if (locked != RTLocked) RTOverrideWhileLocked = NO;
-    RTLocked = locked;
-    RTReadFrontmostGame(nil);
-    RTApplyPower();
+    RTLocked = RTLockToken < 0 ||
+        notify_get_state(RTLockToken, &state) != NOTIFY_STATUS_OK || state != 0;
 }
 
 static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
@@ -222,36 +199,6 @@ static void RTUpdateZombieReaping(void) {
 %end
 
 
-%group RTPocketThermal
-%hook SBPocketStateMonitor
-- (long long)pocketState {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTPocketThermal)) return 0;
-    return %orig;
-}
-- (void)pocketStateManager:(id)manager didUpdateState:(long long)state {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTPocketThermal)) state = 0;
-    %orig(manager, state);
-}
-%end
-%end
-
-%group RTSunlightThermal
-%hook SBThermalController
-- (long long)level {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return 0;
-    return %orig;
-}
-- (BOOL)isThermalBlocked {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return NO;
-    return %orig;
-}
-- (BOOL)_isBlocked {
-    if (atomic_load(&RTEnabled) && atomic_load(&RTSunlightThermal)) return NO;
-    return %orig;
-}
-%end
-%end
-
 %group RTSpringPower
 %hook SpringBoard
 - (void)frontDisplayDidChange:(id)display {
@@ -267,7 +214,7 @@ static void RTUpdateZombieReaping(void) {
                                                        (__bridge CFStringRef)RTDomain);
     if (saved) {
         id value = CFBridgingRelease(saved);
-        RTOwnsPower = [value respondsToSelector:@selector(boolValue)] && [value boolValue];
+        RTLegacyPowerCleanup = [value isKindOfClass:NSNumber.class] && [value boolValue];
     }
     CFPropertyListRef suspended = CFPreferencesCopyAppValue(CFSTR("GameRestoreLowPower"),
                                                             (__bridge CFStringRef)RTDomain);
@@ -275,19 +222,18 @@ static void RTUpdateZombieReaping(void) {
         id value = CFBridgingRelease(suspended);
         RTGameRestoreLowPower = [value respondsToSelector:@selector(boolValue)] && [value boolValue];
     }
-    UIDevice.currentDevice.batteryMonitoringEnabled = YES;
     NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
-    [center addObserverForName:UIDeviceBatteryStateDidChangeNotification object:nil
-                        queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
-        RTApplyPower();
-    }];
     [center addObserverForName:NSProcessInfoPowerStateDidChangeNotification object:nil
                         queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
         RTApplyPower();
     }];
     notify_register_dispatch("com.apple.springboard.lockstate", &RTLockToken,
-                              dispatch_get_main_queue(), ^(int token) { RTReadLock(); });
-    RTReadLock();
+                              dispatch_get_main_queue(), ^(int token) {
+        RTReadFrontmostGame(nil);
+        RTApplyPower();
+    });
+    RTReadFrontmostGame(nil);
+    RTApplyPower();
 }
 %end
 %end
@@ -308,12 +254,6 @@ static void RTUpdateZombieReaping(void) {
             notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,
                                       dispatch_get_main_queue(), ^(int token) { exit(0); });
             %init(RTSpringPower);
-            if (NSClassFromString(@"SBPocketStateMonitor")) {
-                %init(RTPocketThermal);
-            }
-            if (NSClassFromString(@"SBThermalController")) {
-                %init(RTSunlightThermal);
-            }
             RTUpdateZombieReaping();
         } else {
             %init(RTApps);

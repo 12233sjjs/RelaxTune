@@ -1,5 +1,15 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Lock-screen power and thermal module removal in 0.4.6:
+
+- Remove the screen-off low-power feature, its preference and battery-state monitoring. Locking no longer enables low-power mode through this feature.
+- Remove the pocket and sunlight thermal preference rows and all SBPocketStateMonitor/SBThermalController hooks. Apple system thermal management remains active.
+- Preserve the separate Honor of Kings foreground power option. Suspend its writes while locked, including game-exit restoration; resume evaluation after unlocking. Read current lock state before each decision to avoid relying on notification order.
+- On upgrade, consume the old OwnsLowPower marker and make at most one cleanup write when the old feature owned an enabled mode and no suspended manual mode needs restoring. Preserve modes without that ownership marker. A failed cleanup is logged and is not retried automatically.
+- Stop retrying timed-out power writes in a loop and ignore late completion callbacks. Future game or preference events can evaluate the game policy again.
+- Keep animation formulas and 120 Hz requests unchanged. This removes a confirmed power-mode interference path; the reported inverse ratio and lock/unlock animation-speed symptoms have not been validated on an iPhone.
+- Add regression checks for locked-state no-op, legacy/manual power decisions and absence of removed thermal/power hooks in both packages.
+
 Animation application fixes in 0.4.5:
 
 - Fix a concrete no-op: the iOS 16 BSAnimationSettings factory returns an immutable object without setSpeed:. The old code silently skipped the speed write; its double setter cast also did not match the mutable class float setter. Pass the scaled duration into the immutable factory instead.
