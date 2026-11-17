@@ -12,7 +12,6 @@ atomic_bool RTUnlockAnimations = false;
 atomic_bool RTAnimationExcluded = false;
 atomic_bool RTNetwork = true;
 atomic_bool RTTCPNoDelay = false;
-atomic_bool RTGamePerformance = true;
 atomic_bool RTHighRefresh = true;
 atomic_bool RTAudio = false;
 atomic_bool RTZombieReap = false;
@@ -45,7 +44,6 @@ void RTLoadSettings(void) {
     atomic_store(&RTUnlockAnimations, RTRead(@"UnlockAnimations", NO));
     atomic_store(&RTNetwork, RTRead(@"Network", YES));
     atomic_store(&RTTCPNoDelay, RTRead(@"TCPNoDelay", NO));
-    atomic_store(&RTGamePerformance, RTRead(@"GamePerformance", YES));
     atomic_store(&RTHighRefresh, RTRead(@"HighRefresh", YES));
     atomic_store(&RTAudio, RTRead(@"Audio", NO));
     atomic_store(&RTZombieReap, RTRead(@"ZombieReap", NO));

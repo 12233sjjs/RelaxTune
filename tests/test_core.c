@@ -2,19 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "DSP.h"
-#include "PowerPolicy.h"
 #include "Animation.h"
-
-static void testLegacyPower(void) {
-    assert(!RTShouldRestoreLegacyPower(false, false, false));
-    assert(!RTShouldRestoreLegacyPower(false, true, false));
-    assert(!RTShouldRestoreLegacyPower(false, false, true));
-    assert(!RTShouldRestoreLegacyPower(false, true, true));
-    assert(!RTShouldRestoreLegacyPower(true, false, false));
-    assert(RTShouldRestoreLegacyPower(true, true, false));
-    assert(!RTShouldRestoreLegacyPower(true, false, true));
-    assert(!RTShouldRestoreLegacyPower(true, true, true));
-}
 
 static void testAnimation(void) {
     double previousDuration = INFINITY;
@@ -48,38 +36,6 @@ static void testAnimation(void) {
     assert(RTSmoothPlaybackSpeed(INFINITY, 0.0) == 1.0);
     assert(RTSmoothPlaybackSpeed(100.0, 0.0) == 100.0);
     assert(RTSmoothPlaybackSpeed(0.01, 10.0) == 0.1);
-}
-
-static void testGamePower(void) {
-    assert(RTIsPerformanceGame("com.tencent.smoba"));
-    assert(!RTIsPerformanceGame(NULL));
-    assert(!RTIsPerformanceGame("com.tencent.smoba.other"));
-    assert(!RTIsPerformanceGame("com.apple.springboard"));
-
-    // Manual low power: suspend on entry, retain the intent, restore on exit.
-    assert(RTGamePowerDecision(true, true, false, true, false) == RTGameDisablePower);
-    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
-    assert(RTGamePowerDecision(true, false, false, false, true) == RTGameRestorePower);
-    assert(RTGamePowerDecision(true, false, false, true, true) == RTGameClearRestore);
-    assert(RTGamePowerDecision(true, false, false, true, false) == RTGameNoChange);
-
-    // An originally disabled mode must not be enabled when the game exits.
-    assert(RTGamePowerDecision(true, true, false, false, false) == RTGameNoChange);
-    assert(RTGamePowerDecision(true, false, false, false, false) == RTGameNoChange);
-
-    // Locking suspends all game power writes, including restore-on-exit.
-    for (unsigned state = 0; state < 16; state++) {
-        assert(RTGamePowerDecision(state & 1, state & 2, true, state & 4, state & 8)
-               == RTGameNoChange);
-    }
-    // Lock/unlock without leaving the game must keep the suspended state.
-    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
-    assert(RTGamePowerDecision(true, true, true, false, true) == RTGameNoChange);
-    assert(RTGamePowerDecision(true, true, false, false, true) == RTGameNoChange);
-    // Exiting the game or disabling the feature while unlocked still restores it.
-    assert(RTGamePowerDecision(false, true, false, false, true) == RTGameRestorePower);
-    assert(RTGamePowerDecision(false, true, false, true, true) == RTGameClearRestore);
-    assert(RTGamePowerDecision(false, true, false, true, false) == RTGameNoChange);
 }
 
 static double gain(double rate, double frequency) {
@@ -125,10 +81,8 @@ static void testDSP(void) {
 }
 
 int main(void) {
-    testLegacyPower();
     testAnimation();
-    testGamePower();
     testDSP();
-    puts("PASS: legacy power cleanup, locked-state no-op, game suspend/restore, animation 0..10/0.1 monotonic acceleration, native zero, DSP response/stereo/headroom/reset");
+    puts("PASS: animation 0..10/0.1 monotonic acceleration, native zero, DSP response/stereo/headroom/reset");
     return 0;
 }

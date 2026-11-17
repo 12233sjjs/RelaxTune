@@ -38,9 +38,6 @@
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>TCP 小包低延迟</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>TCPNoDelay</string><key>default</key><false/></dict>
-    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>王者荣耀前台停用低电量</string>
-        <key>defaults</key><string>com.12233sjjs.relaxtune</string>
-        <key>key</key><string>GamePerformance</string><key>default</key><true/></dict>
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>自动清理僵尸进程</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>ZombieReap</string><key>default</key><false/></dict>

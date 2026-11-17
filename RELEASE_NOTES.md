@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Remove all automatic low-power management in 0.4.8:
+
+- Remove the Honor of Kings foreground low-power preference, preference reads, foreground hooks, power writes, callbacks, timeout and state restoration. Delete PowerPolicy.c/h and their build inputs.
+- Remove the remaining legacy lock-screen ownership cleanup. Existing GamePerformance, GameRestoreLowPower and OwnsLowPower preferences are ignored; upgrading does not write or restore the current low-power mode. Choose the desired state manually in Control Center.
+- Retain the removal of lock-screen low-power switching and thermal overrides. iOS still manages its own low-power and thermal behavior. The 120 Hz module only reads system low-power state to choose a display request.
+- Keep all three 0..10 acceleration levels, their 0.1 steps and independent wake/unlock switches unchanged.
+- Validate both settings and packaged binaries for absence of the removed power/thermal controls, private writers and frameworks. No iPhone device test has been performed.
+
 Independent acceleration levels in 0.4.7:
 
 - Replace the old duration-ratio setting with an acceleration level from 0 to 10 in steps of 0.1. Speed is 1 + 0.9 * level: 0 preserves original speed, 10 is 10x. Apply duration / speed consistently in UIKit and SpringBoard. Remove the additional 0.8 duration multiplier.

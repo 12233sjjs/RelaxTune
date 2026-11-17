@@ -1,169 +1,26 @@
 #import <UIKit/UIKit.h>
-#import <QuartzCore/QuartzCore.h>
-#import <objc/message.h>
-#import <dlfcn.h>
 #import <notify.h>
 #import <sys/wait.h>
 #import <dispatch/dispatch.h>
 #import "Settings.h"
-#import "PowerPolicy.h"
-#include <math.h>
-#include <string.h>
 #include <stdlib.h>
-#include "Animation.h"
 
-static int RTLockToken = -1;
-static BOOL RTLocked = YES;
-static BOOL RTLegacyPowerCleanup;
-static BOOL RTManagesPower;
-static BOOL RTGameRestoreLowPower;
-static BOOL RTApplyingPower;
-static BOOL RTPowerWritePending;
-static NSUInteger RTPowerRequestSerial;
-static BOOL RTFrontmostGame;
+static BOOL RTSpringBoard;
 static dispatch_source_t RTZombieTimer;
 static int RTRespringToken = -1;
-static NSString *const RTDomain = @"com.12233sjjs.relaxtune";
-static void RTApplyPower(void);
-static void RTReadLock(void);
 static void RTUpdateZombieReaping(void);
-
-static void RTSaveGameRestore(BOOL restore) {
-    RTGameRestoreLowPower = restore;
-    CFPreferencesSetAppValue(CFSTR("GameRestoreLowPower"), restore ? kCFBooleanTrue : kCFBooleanFalse,
-                             (__bridge CFStringRef)RTDomain);
-    CFPreferencesAppSynchronize((__bridge CFStringRef)RTDomain);
-}
-
-static void RTReadFrontmostGame(id display) {
-    id app = display;
-    id springboard = UIApplication.sharedApplication;
-    SEL frontmost = NSSelectorFromString(@"_accessibilityFrontMostApplication");
-    if ([springboard respondsToSelector:frontmost])
-        app = ((id (*)(id, SEL))objc_msgSend)(springboard, frontmost);
-    SEL identifier = NSSelectorFromString(@"bundleIdentifier");
-    id bundle = [app respondsToSelector:identifier]
-        ? ((id (*)(id, SEL))objc_msgSend)(app, identifier) : nil;
-    RTFrontmostGame = [bundle isKindOfClass:NSString.class] &&
-                     RTIsPerformanceGame([bundle UTF8String]);
-}
-
-static id RTPowerController(void) {
-    Class cls = NSClassFromString(@"_PMLowPowerMode");
-    SEL shared = NSSelectorFromString(@"sharedInstance");
-    if ([cls respondsToSelector:shared])
-        return ((id (*)(id, SEL))objc_msgSend)(cls, shared);
-    cls = NSClassFromString(@"_CDBatterySaver");
-    SEL saver = NSSelectorFromString(@"batterySaver");
-    return [cls respondsToSelector:saver] ? ((id (*)(id, SEL))objc_msgSend)(cls, saver) : nil;
-}
-
-static void RTRequestPower(id saver, NSInteger target, void (^completion)(BOOL)) {
-    NSUInteger serial = ++RTPowerRequestSerial;
-    RTPowerWritePending = YES;
-    void (^finished)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (serial != RTPowerRequestSerial || !RTPowerWritePending) return;
-            BOOL changed = success && ((NSInteger (*)(id, SEL))objc_msgSend)(saver,
-                NSSelectorFromString(@"getPowerMode")) == target;
-            RTPowerWritePending = NO;
-            completion(changed);
-            if (changed) RTApplyPower();
-        });
-    };
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
-        dispatch_get_main_queue(), ^{
-            if (serial != RTPowerRequestSerial || !RTPowerWritePending) return;
-            RTPowerWritePending = NO;
-            ++RTPowerRequestSerial;
-            completion(NO);
-        });
-    SEL asyncWrite = NSSelectorFromString(@"setPowerMode:fromSource:withCompletion:");
-    NSMethodSignature *signature = [saver methodSignatureForSelector:asyncWrite];
-    if (signature.numberOfArguments == 5 &&
-        strcmp([signature getArgumentTypeAtIndex:2], @encode(NSInteger)) == 0 &&
-        [signature getArgumentTypeAtIndex:3][0] == '@' &&
-        [signature getArgumentTypeAtIndex:4][0] == '@') {
-        ((void (*)(id, SEL, NSInteger, id, void (^)(BOOL, NSError *)))objc_msgSend)(
-            saver, asyncWrite, target, @"cc优化系统", finished);
-    } else {
-        ((void (*)(id, SEL, NSInteger, id))objc_msgSend)(saver,
-            NSSelectorFromString(@"setPowerMode:fromSource:"), target, @"cc优化系统");
-        finished(YES, nil);
-    }
-}
-
-static void RTApplyPowerImpl(void) {
-    RTReadLock();
-    id saver = RTPowerController();
-    SEL read = NSSelectorFromString(@"getPowerMode");
-    SEL write = NSSelectorFromString(@"setPowerMode:fromSource:");
-    NSMethodSignature *signature = [saver methodSignatureForSelector:write];
-    NSMethodSignature *readSignature = [saver methodSignatureForSelector:read];
-    if (readSignature.numberOfArguments != 2 ||
-        strcmp(readSignature.methodReturnType, @encode(NSInteger)) != 0 ||
-        signature.numberOfArguments != 4 ||
-        strcmp([signature getArgumentTypeAtIndex:2], @encode(NSInteger)) != 0 ||
-        [signature getArgumentTypeAtIndex:3][0] != '@') return;
-    NSInteger current = ((NSInteger (*)(id, SEL))objc_msgSend)(saver, read);
-    if (current != 0 && current != 1) return;
-    if (RTLegacyPowerCleanup) {
-        // Consume the old ownership marker once; never retry cleanup after a failed write.
-        RTLegacyPowerCleanup = NO;
-        CFPreferencesSetAppValue(CFSTR("OwnsLowPower"), NULL, (__bridge CFStringRef)RTDomain);
-        CFPreferencesAppSynchronize((__bridge CFStringRef)RTDomain);
-        if (RTShouldRestoreLegacyPower(true, current == 1, RTGameRestoreLowPower)) {
-            RTRequestPower(saver, 0, ^(BOOL changed) {
-                if (!changed) NSLog(@"[RelaxTune] Legacy low-power cleanup was not confirmed.");
-            });
-            return;
-        }
-    }
-    BOOL gameEnabled = atomic_load(&RTEnabled) && atomic_load(&RTGamePerformance);
-    RTGamePowerAction gameAction = RTGamePowerDecision(gameEnabled, RTFrontmostGame, RTLocked,
-                                                       current == 1, RTGameRestoreLowPower);
-    if (gameAction == RTGameDisablePower) {
-        RTRequestPower(saver, 0, ^(BOOL changed) {
-            if (changed) RTSaveGameRestore(YES);
-        });
-        return;
-    }
-    if (gameAction == RTGameRestorePower) {
-        RTRequestPower(saver, 1, ^(BOOL changed) {
-            if (changed) RTSaveGameRestore(NO);
-        });
-        return;
-    } else if (gameAction == RTGameClearRestore) {
-        RTSaveGameRestore(NO);
-    }
-}
-
-static void RTApplyPower(void) {
-    if (!RTManagesPower || RTApplyingPower || RTPowerWritePending) return;
-    RTApplyingPower = YES;
-    @try { RTApplyPowerImpl(); }
-    @finally { RTApplyingPower = NO; }
-}
-
-static void RTReadLock(void) {
-    uint64_t state = 0;
-    RTLocked = RTLockToken < 0 ||
-        notify_get_state(RTLockToken, &state) != NOTIFY_STATUS_OK || state != 0;
-}
 
 static void RTSettingsChanged(CFNotificationCenterRef center, void *observer,
                                CFStringRef name, const void *object, CFDictionaryRef info) {
     dispatch_async(dispatch_get_main_queue(), ^{
         RTLoadSettings();
-        if (RTManagesPower) RTApplyPower();
-        if (RTManagesPower) RTRefreshRateDidChange();
+        if (RTSpringBoard) RTRefreshRateDidChange();
         RTUpdateZombieReaping();
     });
 }
 
-
 static void RTUpdateZombieReaping(void) {
-    if (!RTManagesPower) return;
+    if (!RTSpringBoard) return;
     BOOL enabled = atomic_load(&RTEnabled) && atomic_load(&RTZombieReap);
     if (enabled && !RTZombieTimer) {
         dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
@@ -199,61 +56,21 @@ static void RTUpdateZombieReaping(void) {
 %end
 
 
-%group RTSpringPower
-%hook SpringBoard
-- (void)frontDisplayDidChange:(id)display {
-    %orig;
-    RTReadFrontmostGame(display);
-    RTApplyPower();
-}
-- (void)applicationDidFinishLaunching:(id)application {
-    %orig;
-    dlopen("/System/Library/PrivateFrameworks/LowPowerMode.framework/LowPowerMode", RTLD_LAZY);
-    dlopen("/System/Library/PrivateFrameworks/CoreDuet.framework/CoreDuet", RTLD_LAZY);
-    CFPropertyListRef saved = CFPreferencesCopyAppValue(CFSTR("OwnsLowPower"),
-                                                       (__bridge CFStringRef)RTDomain);
-    if (saved) {
-        id value = CFBridgingRelease(saved);
-        RTLegacyPowerCleanup = [value isKindOfClass:NSNumber.class] && [value boolValue];
-    }
-    CFPropertyListRef suspended = CFPreferencesCopyAppValue(CFSTR("GameRestoreLowPower"),
-                                                            (__bridge CFStringRef)RTDomain);
-    if (suspended) {
-        id value = CFBridgingRelease(suspended);
-        RTGameRestoreLowPower = [value respondsToSelector:@selector(boolValue)] && [value boolValue];
-    }
-    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
-    [center addObserverForName:NSProcessInfoPowerStateDidChangeNotification object:nil
-                        queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
-        RTApplyPower();
-    }];
-    notify_register_dispatch("com.apple.springboard.lockstate", &RTLockToken,
-                              dispatch_get_main_queue(), ^(int token) {
-        RTReadFrontmostGame(nil);
-        RTApplyPower();
-    });
-    RTReadFrontmostGame(nil);
-    RTApplyPower();
-}
-%end
-%end
-
 %ctor {
     @autoreleasepool {
         NSBundle *mainBundle = NSBundle.mainBundle;
         NSString *bundleIdentifier = mainBundle.bundleIdentifier;
         BOOL isApplicationBundle = [mainBundle.bundlePath.pathExtension isEqualToString:@"app"];
         if (!RTShouldLoadMainTweak(bundleIdentifier, isApplicationBundle)) return;
-        RTManagesPower = [bundleIdentifier isEqualToString:@"com.apple.springboard"];
+        RTSpringBoard = [bundleIdentifier isEqualToString:@"com.apple.springboard"];
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
             CFNotificationSuspensionBehaviorDeliverImmediately);
-        RTInstallAnimationHooks(RTManagesPower);
-        if (RTManagesPower) {
+        RTInstallAnimationHooks(RTSpringBoard);
+        if (RTSpringBoard) {
             notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,
                                       dispatch_get_main_queue(), ^(int token) { exit(0); });
-            %init(RTSpringPower);
             RTUpdateZombieReaping();
         } else {
             %init(RTApps);

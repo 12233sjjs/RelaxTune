@@ -21,10 +21,17 @@ if len(sys.argv) > 1:
     filter_file = library / "MobileSubstrate/DynamicLibraries/RelaxTune.plist"
     assert (bundle / "RelaxTunePrefs").is_file(), "Missing settings executable"
     assert (library / "ccSystem/system_tweaks.sh").is_file(), "Missing manual kernel module"
-    binary = (library / "MobileSubstrate/DynamicLibraries/RelaxTune.dylib").read_bytes()
-    for removed in (b"SBPocketStateMonitor", b"SBThermalController", b"RTLowPower",
-                    b"RTPocketThermal", b"RTSunlightThermal", b"RTPowerDecision"):
-        assert removed not in binary, f"Removed feature is still packaged: {removed!r}"
+    payloads = list((library / "MobileSubstrate/DynamicLibraries").glob("*.dylib"))
+    payloads += [bundle / "RelaxTunePrefs", library / "ccSystem/system_tweaks.sh"]
+    for path in payloads:
+        binary = path.read_bytes()
+        for removed in (b"SBPocketStateMonitor", b"SBThermalController", b"RTLowPower",
+                        b"RTPocketThermal", b"RTSunlightThermal", b"RTPowerDecision",
+                        b"RTGamePower", b"RTGamePerformance", b"GamePerformance",
+                        b"GameRestoreLowPower", b"OwnsLowPower", b"RTApplyPower",
+                        b"_PMLowPowerMode", b"_CDBatterySaver", b"setPowerMode:",
+                        b"LowPowerMode.framework", b"putDeviceInThermalSimulationMode:"):
+            assert removed not in binary, f"Removed feature in {path}: {removed!r}"
 else:
     entry_file = root / "layout/Library/PreferenceLoader/Preferences/RelaxTune.plist"
     info_file = root / "prefs/Resources/Info.plist"
@@ -42,12 +49,11 @@ assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
 assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay",
-                         "GamePerformance", "HighRefresh", "ZombieReap",
+                         "HighRefresh", "ZombieReap",
                          "WakeAnimations", "UnlockAnimations"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
-assert switches["GamePerformance"]["default"] is True
 assert switches["TCPNoDelay"]["default"] is False
 assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
@@ -66,4 +72,11 @@ if len(sys.argv) == 1:
     assert "_factorStepper.stepValue = 0.1;" in controller_source
     tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
     assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
-print("PASS: PreferenceLoader controller declaration, settings metadata and switches")
+    lifecycle_source = (root / "src/Tweak.x").read_text(encoding="utf-8")
+    for removed in ("RTApplyPower", "setPowerMode:", "LowPowerMode.framework",
+                    "GameRestoreLowPower", "OwnsLowPower", "frontDisplayDidChange:",
+                    "com.apple.springboard.lockstate"):
+        assert removed not in lifecycle_source, f"Removed power path: {removed}"
+    assert not (root / "src/PowerPolicy.c").exists()
+    assert not (root / "src/PowerPolicy.h").exists()
+print("PASS: PreferenceLoader metadata, independent animation settings, no power/thermal controls")

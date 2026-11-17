@@ -8,7 +8,6 @@ extern atomic_bool RTUnlockAnimations;
 extern atomic_bool RTAnimationExcluded;
 extern atomic_bool RTNetwork;
 extern atomic_bool RTTCPNoDelay;
-extern atomic_bool RTGamePerformance;
 extern atomic_bool RTHighRefresh;
 extern atomic_bool RTAudio;
 extern atomic_bool RTZombieReap;
