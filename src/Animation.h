@@ -2,23 +2,24 @@
 #define RT_ANIMATION_H
 #include <math.h>
 
-// Keep UIKit duration and SpringBoard playback scaling in sync.
-static const double RTAnimationDurationScale = 0.8;
-
 static inline double RTClampFactor(double factor) {
-    if (!isfinite(factor)) return 1.0;
-    return round(fmin(10.0, fmax(0.0, factor)) * 100.0) / 100.0;
+    if (!isfinite(factor)) return 0.0;
+    return round(fmin(10.0, fmax(0.0, factor)) * 10.0) / 10.0;
+}
+
+// Acceleration level 0 preserves native timing; level 10 runs at 10x speed.
+static inline double RTAnimationSpeed(double level) {
+    return 1.0 + 0.9 * RTClampFactor(level);
 }
 
 static inline double RTScaledDuration(double duration, double factor) {
     return duration >= 0.12 && duration <= 1.0
-        ? duration * RTClampFactor(factor) * RTAnimationDurationScale : duration;
+        ? duration / RTAnimationSpeed(factor) : duration;
 }
 
 static inline double RTSmoothPlaybackSpeed(double speed, double factor) {
     if (!isfinite(speed) || speed <= 0.0) speed = 1.0;
-    factor = RTClampFactor(factor);
-    if (factor <= 0.0) return 10.0;
-    return fmin(10.0, fmax(0.1, speed / (factor * RTAnimationDurationScale)));
+    double scaled = speed * RTAnimationSpeed(factor);
+    return isfinite(scaled) ? scaled : speed;
 }
 #endif

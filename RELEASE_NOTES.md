@@ -1,5 +1,16 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Independent acceleration levels in 0.4.7:
+
+- Replace the old duration-ratio setting with an acceleration level from 0 to 10 in steps of 0.1. Speed is 1 + 0.9 * level: 0 preserves original speed, 10 is 10x. Apply duration / speed consistently in UIKit and SpringBoard. Remove the additional 0.8 duration multiplier.
+- Use a new AnimationAcceleration preference so old duration ratios are not silently interpreted using the reversed meaning. All three acceleration levels start at 0; the previous ratio is retained but ignored.
+- Add separate, disabled-by-default wake and unlock acceleration switches and levels. They share only the master switch, Reduce Motion and animation exclusion policy, and do not depend on the main animation switch or 120 Hz option.
+- Multiply the computed SBScreenWakeAnimationController wake speed once, after the system combines wake and lift-to-wake factors. Fall back to only the SBFWakeAnimationSettings wake factor if the final-speed method is unavailable. Keep underlying wake/sleep settings and the wake animation scope out of main animation scaling.
+- Apply unlock timing to identified lock-screen wallpaper settings and the animated CoverSheet dismissal completion path while the lock screen is visible/locked. Convert its noninteractive spring completion to ease-out using the system spring's settling time as the baseline. Do not change authentication or finger tracking. Runtime method signatures are checked before installing these private hooks.
+- Deliver preference reload notifications immediately. Do not mutate saved animation settings during a lock/unlock cycle.
+- Extend Objective-C fixtures to test all 101 levels, independent switches, native zero, disabled state, callbacks, repeated evaluation and context cleanup. These are runtime fixtures on macOS, not iPhone tests. CoverSheet entry points are private and still need iOS 16.6.1 device validation.
+- Retain the 0.4.6 removal of lock-screen low-power switching and thermal override modules.
+
 Lock-screen power and thermal module removal in 0.4.6:
 
 - Remove the screen-off low-power feature, its preference and battery-state monitoring. Locking no longer enables low-power mode through this feature.

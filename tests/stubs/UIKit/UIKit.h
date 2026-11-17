@@ -33,6 +33,8 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void);
 + (void)animateWithDuration:(double)duration delay:(double)delay usingSpringWithDamping:(CGFloat)damping
      initialSpringVelocity:(CGFloat)velocity options:(UIViewAnimationOptions)options
                 animations:(void (^)(void))animations completion:(void (^)(BOOL))completion;
++ (void)_animateUsingSpringWithTension:(double)tension friction:(double)friction interactive:(BOOL)interactive
+                           animations:(void (^)(void))animations completion:(void (^)(BOOL))completion;
 @end
 @interface UIViewPropertyAnimator : NSObject
 @property double duration;

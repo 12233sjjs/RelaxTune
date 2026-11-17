@@ -1,19 +1,32 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <objc/runtime.h>
 #import "Settings.h"
 #import "AnimationSettings.h"
 
 static __thread unsigned RTAnimationDepth;
 static __thread BOOL RTConvertingSpringAnimation;
+static __thread BOOL RTUnlockTransition;
+static __thread BOOL RTWakeTransition;
+static char RTLockSettingsKey;
+typedef NS_ENUM(NSInteger, RTLockSettingsKind) { RTWakeSettings = 1, RTUnlockSettings };
+
+static double RTCurrentAcceleration(void) {
+    return atomic_load(RTUnlockTransition ? &RTUnlockAcceleration : &RTAnimationFactor);
+}
 
 static BOOL RTAnimationHooksActive(void) {
-    return atomic_load(&RTEnabled) && atomic_load(&RTAnimations) &&
+    if (RTWakeTransition) return NO;
+    BOOL enabled = RTUnlockTransition
+        ? atomic_load(&RTUnlockAnimations) && RTCurrentAcceleration() > 0.0
+        : atomic_load(&RTAnimations);
+    return atomic_load(&RTEnabled) && enabled &&
            !atomic_load(&RTAnimationExcluded) && !UIAccessibilityIsReduceMotionEnabled();
 }
 
 static NSTimeInterval RTDuration(NSTimeInterval duration) {
     return RTAnimationDepth == 1 && RTAnimationHooksActive()
-        ? RTScaledDuration(duration, atomic_load(&RTAnimationFactor)) : duration;
+        ? RTScaledDuration(duration, RTCurrentAcceleration()) : duration;
 }
 
 static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
@@ -58,7 +71,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
         timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
     });
     id settings = RTCreateAnimationSettings(factoryClass, duration, delay, speed,
-                                            atomic_load(&RTAnimationFactor), timing);
+                                            RTCurrentAcceleration(), timing);
     RTApply120FrameRate(settings);
     return settings;
 }
@@ -112,7 +125,40 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
     }
 }
 %end
+%end
 
+%group RTUnlockSpringHooks
+%hook UIView
++ (void)_animateUsingSpringWithTension:(double)tension friction:(double)friction
+                          interactive:(BOOL)interactive animations:(void (^)(void))animations
+                           completion:(void (^)(BOOL))completion {
+    if (!RTUnlockTransition || !RTAnimationHooksActive() || interactive ||
+        !isfinite(tension) || tension <= 0 || !isfinite(friction) || friction <= 0) {
+        %orig(tension, friction, interactive, animations, completion);
+        return;
+    }
+    CASpringAnimation *spring = [CASpringAnimation animation];
+    spring.mass = 1.0;
+    spring.stiffness = tension;
+    spring.damping = friction;
+    spring.initialVelocity = 0.0;
+    double duration = spring.settlingDuration;
+    if (!isfinite(duration) || duration <= 0.0 || duration > 10.0) {
+        %orig(tension, friction, interactive, animations, completion);
+        return;
+    }
+    // This call already has its final duration; the public UIKit hook must not scale it again.
+    RTAnimationDepth++;
+    @try {
+        [self animateWithDuration:duration / RTAnimationSpeed(RTCurrentAcceleration()) delay:0
+            options:RTSmoothOptions(UIViewAnimationOptionAllowUserInteraction)
+            animations:animations completion:completion];
+    } @finally { RTAnimationDepth--; }
+}
+%end
+%end
+
+%group RTPropertyAnimations
 %hook UIViewPropertyAnimator
 - (id)initWithDuration:(NSTimeInterval)duration curve:(UIViewAnimationCurve)curve
            animations:(void (^)(void))animations {
@@ -163,26 +209,177 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
 %hook SBFAnimationSettings
 - (id)BSAnimationSettings {
     id original = %orig;
-    if (RTAnimationHooksActive()) {
-        double duration = RTNumberForKey(self, @"duration");
-        double speed = RTNumberForKey(self, @"speed");
-        if (!isfinite(duration) || duration <= 0.0) {
-            duration = RTNumberForKey(original, @"duration");
-            speed = 1.0;
-        }
-        id settings = RTSmoothBSAnimationSettings(duration, RTNumberForKey(self, @"delay"), speed);
-        if (settings) return settings;
+    NSNumber *kind = objc_getAssociatedObject(self, &RTLockSettingsKey);
+    if (kind.integerValue == RTWakeSettings) {
+        RTApply120FrameRate(original);
+        return original;
     }
+    BOOL previous = RTUnlockTransition;
+    if (kind.integerValue == RTUnlockSettings) RTUnlockTransition = YES;
+    @try {
+        if (RTAnimationHooksActive()) {
+            double duration = RTNumberForKey(self, @"duration");
+            double speed = RTNumberForKey(self, @"speed");
+            if (!isfinite(duration) || duration <= 0.0) {
+                duration = RTNumberForKey(original, @"duration");
+                speed = 1.0;
+            }
+            id settings = RTSmoothBSAnimationSettings(duration, RTNumberForKey(self, @"delay"), speed);
+            if (settings) return settings;
+        }
+    } @finally { RTUnlockTransition = previous; }
     RTApply120FrameRate(original);
     return original;
 }
 %end
 %end
 
+static id RTMarkLockSettings(id settings, RTLockSettingsKind kind) {
+    if (settings) objc_setAssociatedObject(settings, &RTLockSettingsKey, @(kind), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return settings;
+}
+
+static double RTWakeSpeed(double original) {
+    if (!atomic_load(&RTEnabled) || !atomic_load(&RTWakeAnimations) ||
+        atomic_load(&RTAnimationExcluded) || UIAccessibilityIsReduceMotionEnabled() ||
+        !isfinite(original) || original <= 0.0) return original;
+    return RTSmoothPlaybackSpeed(original, atomic_load(&RTWakeAcceleration));
+}
+
+%group RTWakeSpeedHooks
+%hook SBFWakeAnimationSettings
+- (double)speedMultiplierForWake { return RTWakeSpeed(%orig); }
+%end
+%end
+
+%group RTWakeControllerSpeedHooks
+%hook SBScreenWakeAnimationController
++ (double)_animationSpeedForBacklightChangeSource:(long long)source isWake:(BOOL)wake {
+    double original = %orig;
+    return wake ? RTWakeSpeed(original) : original;
+}
+%end
+%end
+
+%group RTWakeContextHooks
+%hook SBScreenWakeAnimationController
+- (void)_startWakeAnimationsForWaking:(BOOL)waking animationSettings:(id)settings {
+    BOOL previous = RTWakeTransition;
+    RTWakeTransition = YES;
+    @try { %orig(waking, settings); }
+    @finally { RTWakeTransition = previous; }
+}
+%end
+%end
+
+%group RTWakeSettingsHooks
+%hook SBFWakeAnimationSettings
+- (id)contentWakeSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
+- (id)awakeWallpaperFilterSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
+- (id)sleepWallpaperFilterSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
+%end
+%end
+
+%group RTUnlockSettingsHooks
+%hook CSLockScreenSettings
+- (id)unlockWallpaperOutSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
+- (id)unlockWallpaperInSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
+- (id)unlockToPhoneWallpaperOutSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
+- (id)unlockToPhoneWallpaperInSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
+%end
+%end
+
+static BOOL RTLockScreenVisible(void) {
+    Class managerClass = NSClassFromString(@"SBLockScreenManager");
+    SEL shared = NSSelectorFromString(@"sharedInstance");
+    NSMethodSignature *sharedSignature = [managerClass methodSignatureForSelector:shared];
+    if (sharedSignature.numberOfArguments != 2 || sharedSignature.methodReturnType[0] != '@') return NO;
+    id manager = ((id (*)(id, SEL))objc_msgSend)(managerClass, shared);
+    for (NSString *name in @[@"isUILocked", @"isLockScreenVisible"]) {
+        SEL selector = NSSelectorFromString(name);
+        NSMethodSignature *signature = [manager methodSignatureForSelector:selector];
+        if (signature.numberOfArguments == 2 &&
+            (signature.methodReturnType[0] == 'B' || signature.methodReturnType[0] == 'c') &&
+            ((BOOL (*)(id, SEL))objc_msgSend)(manager, selector)) return YES;
+    }
+    return NO;
+}
+
+%group RTUnlockTransitionHooks
+%hook SBCoverSheetSlidingViewController
+- (void)_finishTransitionToPresented:(BOOL)presented animated:(BOOL)animated
+                      withCompletion:(id)completion {
+    BOOL previous = RTUnlockTransition;
+    // CoverSheet presentation and finger tracking keep native timing.
+    RTUnlockTransition = !presented && animated && RTLockScreenVisible();
+    @try {
+        %orig(presented, animated, completion);
+    } @finally { RTUnlockTransition = previous; }
+}
+%end
+%end
+
+static BOOL RTMethodMatches(Class cls, NSString *name, const char *result, NSUInteger count) {
+    NSMethodSignature *signature = [cls instanceMethodSignatureForSelector:NSSelectorFromString(name)];
+    return signature && signature.numberOfArguments == count &&
+        strcmp(signature.methodReturnType, result) == 0;
+}
+
+static BOOL RTBoolArgument(NSMethodSignature *signature, NSUInteger index) {
+    const char *type = [signature getArgumentTypeAtIndex:index];
+    return type[0] == 'B' || type[0] == 'c';
+}
+
 void RTInstallAnimationHooks(BOOL springboard) {
     %init(RTUIKitAnimations);
+    %init(RTPropertyAnimations);
     Class settingsClass = NSClassFromString(@"SBFAnimationSettings");
-    if (springboard && [settingsClass instancesRespondToSelector:NSSelectorFromString(@"BSAnimationSettings")]) {
+    if (springboard && RTMethodMatches(settingsClass, @"BSAnimationSettings", @encode(id), 2)) {
         %init(RTSBFNonSpring);
+    }
+    if (!springboard) return;
+    Class wake = NSClassFromString(@"SBFWakeAnimationSettings");
+    Class controller = NSClassFromString(@"SBScreenWakeAnimationController");
+    NSMethodSignature *wakeSpeed = [controller methodSignatureForSelector:NSSelectorFromString(
+        @"_animationSpeedForBacklightChangeSource:isWake:")];
+    if (wakeSpeed.numberOfArguments == 4 && strcmp(wakeSpeed.methodReturnType, @encode(double)) == 0 &&
+        strcmp([wakeSpeed getArgumentTypeAtIndex:2], @encode(long long)) == 0 && RTBoolArgument(wakeSpeed, 3)) {
+        %init(RTWakeControllerSpeedHooks);
+    } else if (RTMethodMatches(wake, @"speedMultiplierForWake", @encode(double), 2)) {
+        %init(RTWakeSpeedHooks);
+    }
+    NSMethodSignature *wakeContext = [controller instanceMethodSignatureForSelector:NSSelectorFromString(
+        @"_startWakeAnimationsForWaking:animationSettings:")];
+    if (wakeContext.numberOfArguments == 4 && strcmp(wakeContext.methodReturnType, @encode(void)) == 0 &&
+        RTBoolArgument(wakeContext, 2) && [wakeContext getArgumentTypeAtIndex:3][0] == '@') {
+        %init(RTWakeContextHooks);
+    }
+    if (RTMethodMatches(wake, @"contentWakeSettings", @encode(id), 2) &&
+        RTMethodMatches(wake, @"awakeWallpaperFilterSettings", @encode(id), 2) &&
+        RTMethodMatches(wake, @"sleepWallpaperFilterSettings", @encode(id), 2)) {
+        %init(RTWakeSettingsHooks);
+    }
+    Class lock = NSClassFromString(@"CSLockScreenSettings");
+    if (RTMethodMatches(lock, @"unlockWallpaperOutSettings", @encode(id), 2) &&
+        RTMethodMatches(lock, @"unlockWallpaperInSettings", @encode(id), 2) &&
+        RTMethodMatches(lock, @"unlockToPhoneWallpaperOutSettings", @encode(id), 2) &&
+        RTMethodMatches(lock, @"unlockToPhoneWallpaperInSettings", @encode(id), 2)) {
+        %init(RTUnlockSettingsHooks);
+    }
+    Class sliding = NSClassFromString(@"SBCoverSheetSlidingViewController");
+    SEL finish = NSSelectorFromString(@"_finishTransitionToPresented:animated:withCompletion:");
+    NSMethodSignature *signature = [sliding instanceMethodSignatureForSelector:finish];
+    NSMethodSignature *spring = [UIView methodSignatureForSelector:NSSelectorFromString(
+        @"_animateUsingSpringWithTension:friction:interactive:animations:completion:")];
+    if (signature.numberOfArguments == 5 && strcmp(signature.methodReturnType, @encode(void)) == 0 &&
+        RTBoolArgument(signature, 2) && RTBoolArgument(signature, 3) &&
+        [signature getArgumentTypeAtIndex:4][0] == '@' &&
+        spring.numberOfArguments == 7 && strcmp(spring.methodReturnType, @encode(void)) == 0 &&
+        strcmp([spring getArgumentTypeAtIndex:2], @encode(double)) == 0 &&
+        strcmp([spring getArgumentTypeAtIndex:3], @encode(double)) == 0 &&
+        RTBoolArgument(spring, 4) && [spring getArgumentTypeAtIndex:5][0] == '@' &&
+        [spring getArgumentTypeAtIndex:6][0] == '@') {
+        %init(RTUnlockSpringHooks);
+        %init(RTUnlockTransitionHooks);
     }
 }

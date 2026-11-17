@@ -79,6 +79,7 @@ jobs:
             -framework Foundation -framework QuartzCore -Itests/stubs -Isrc \
             work/Animation-test.m tests/test_animation_hooks.m src/Settings.m -o work/test_animation_hooks
           ./work/test_animation_hooks
+          ./work/test_animation_hooks --wake-fallback
       - name: Build ${{ matrix.scheme }}
         run: |
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=${{ matrix.scheme }} -j2

@@ -17,36 +17,36 @@ static void testLegacyPower(void) {
 }
 
 static void testAnimation(void) {
-    for (unsigned i = 0; i <= 1000; i++) {
-        double value = i / 100.0;
+    double previousDuration = INFINITY;
+    for (unsigned i = 0; i <= 100; i++) {
+        double value = i / 10.0;
         assert(fabs(RTClampFactor(value) - value) < 1e-12);
-        assert(fabs(RTScaledDuration(0.5, value) - 0.4 * value) < 1e-12);
-        if (value >= 0.13) {
-            double uiDuration = RTScaledDuration(0.5, value);
-            double sbDuration = 0.5 / RTSmoothPlaybackSpeed(1.0, value);
-            assert(fabs(uiDuration - sbDuration) < 1e-12);
-        }
+        double expectedSpeed = 1.0 + 0.9 * value;
+        double uiDuration = RTScaledDuration(0.5, value);
+        double sbDuration = 0.5 / RTSmoothPlaybackSpeed(1.0, value);
+        assert(fabs(uiDuration - 0.5 / expectedSpeed) < 1e-12);
+        assert(fabs(uiDuration - sbDuration) < 1e-12);
+        assert(uiDuration < previousDuration);
+        assert(uiDuration > 0.0 && isfinite(uiDuration));
+        previousDuration = uiDuration;
+        assert(fabs(RTSmoothPlaybackSpeed(0.5, value) - 0.5 * expectedSpeed) < 1e-12);
     }
     assert(RTClampFactor(-1.0) == 0.0);
     assert(RTClampFactor(11.0) == 10.0);
-    assert(RTClampFactor(NAN) == 1.0);
-    assert(RTClampFactor(INFINITY) == 1.0);
-    assert(RTClampFactor(0.914) == 0.91);
-    assert(RTClampFactor(0.916) == 0.92);
+    assert(RTClampFactor(NAN) == 0.0);
+    assert(RTClampFactor(INFINITY) == 0.0);
+    assert(RTClampFactor(0.94) == 0.9);
+    assert(RTClampFactor(0.96) == 1.0);
     assert(RTClampFactor(9.999) == 10.0);
     assert(RTScaledDuration(5.0, 0.0) == 5.0);
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
-    assert(RTScaledDuration(0.5, 0.0) == 0.0);
-    assert(fabs(RTScaledDuration(0.3, 1.0) - 0.24) < 1e-12);
-    assert(fabs(RTScaledDuration(0.12, 1.0) - 0.096) < 1e-12);
-    assert(fabs(RTScaledDuration(1.0, 1.0) - 0.8) < 1e-12);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 1.0) - 1.25) < 1e-12);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 2.0) - 0.625) < 1e-12);
-    assert(fabs(RTSmoothPlaybackSpeed(1.0, 0.5) - 2.5) < 1e-12);
-    assert(RTSmoothPlaybackSpeed(1.0, 0.0) == 10.0);
-    assert(RTSmoothPlaybackSpeed(NAN, 1.0) == 1.25);
-    assert(RTSmoothPlaybackSpeed(INFINITY, 1.0) == 1.25);
-    assert(RTSmoothPlaybackSpeed(100.0, 0.01) == 10.0);
+    assert(RTScaledDuration(0.5, 0.0) == 0.5);
+    assert(RTScaledDuration(0.5, 10.0) == 0.05);
+    assert(RTSmoothPlaybackSpeed(1.0, 0.0) == 1.0);
+    assert(RTSmoothPlaybackSpeed(1.0, 10.0) == 10.0);
+    assert(RTSmoothPlaybackSpeed(NAN, 0.0) == 1.0);
+    assert(RTSmoothPlaybackSpeed(INFINITY, 0.0) == 1.0);
+    assert(RTSmoothPlaybackSpeed(100.0, 0.0) == 100.0);
     assert(RTSmoothPlaybackSpeed(0.01, 10.0) == 0.1);
 }
 
@@ -129,6 +129,6 @@ int main(void) {
     testAnimation();
     testGamePower();
     testDSP();
-    puts("PASS: legacy power cleanup, locked-state no-op, game suspend/restore, animation 0..10/0.01, spring speed scaling, DSP response/stereo/headroom/reset");
+    puts("PASS: legacy power cleanup, locked-state no-op, game suspend/restore, animation 0..10/0.1 monotonic acceleration, native zero, DSP response/stereo/headroom/reset");
     return 0;
 }

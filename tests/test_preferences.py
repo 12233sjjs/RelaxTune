@@ -42,7 +42,8 @@ assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
 assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
 assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay",
-                         "GamePerformance", "HighRefresh", "ZombieReap"}
+                         "GamePerformance", "HighRefresh", "ZombieReap",
+                         "WakeAnimations", "UnlockAnimations"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
@@ -50,7 +51,10 @@ assert switches["GamePerformance"]["default"] is True
 assert switches["TCPNoDelay"]["default"] is False
 assert switches["HighRefresh"]["default"] is True
 assert switches["ZombieReap"]["default"] is False
-assert any(item.get("cellClass") == "RTFactorCell" for item in settings)
+assert switches["WakeAnimations"]["default"] is False
+assert switches["UnlockAnimations"]["default"] is False
+levels = {item["key"]: item for item in settings if item.get("cellClass") == "RTFactorCell"}
+assert set(levels) == {"AnimationAcceleration", "WakeAcceleration", "UnlockAcceleration"}
 assert any(item.get("action") == "rtEditAnimationExclusions:" and "detail" not in item
            for item in settings)
 assert not any("音效" in item.get("label", "") or item.get("key") == "Audio"
@@ -59,6 +63,7 @@ if len(sys.argv) == 1:
     controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
     assert "rtEditAnimationExclusions:(PSSpecifier *)specifier" in controller_source
     assert "RTAnimationExclusionController" not in controller_source
+    assert "_factorStepper.stepValue = 0.1;" in controller_source
     tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
     assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
 print("PASS: PreferenceLoader controller declaration, settings metadata and switches")

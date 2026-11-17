@@ -9,6 +9,9 @@ static NSMutableArray<NSNumber *> *durations;
 static double lastDelay;
 static UIViewAnimationOptions lastOptions;
 static BOOL originalSpring;
+static BOOL raiseDuringUnlock;
+static BOOL lockScreenVisible = YES;
+static BOOL useWakeFallback;
 static CGPoint lastP1, lastP2;
 BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 
@@ -43,6 +46,13 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
                 animations:(void (^)(void))a completion:(void (^)(BOOL))c {
     originalSpring = YES;
     [self animateWithDuration:d delay:delay options:o animations:a completion:c];
+}
++ (void)_animateUsingSpringWithTension:(double)t friction:(double)f interactive:(BOOL)i
+                           animations:(void (^)(void))a completion:(void (^)(BOOL))c {
+    originalSpring = YES;
+    [durations addObject:@0.5];
+    if (a) a();
+    if (c) c(YES);
 }
 @end
 @implementation UIViewPropertyAnimator
@@ -96,20 +106,87 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 }
 @end
 
+@interface SBFWakeAnimationSettings : NSObject
+@property (strong) SBFAnimationSettings *contentWakeSettings;
+@property (strong) SBFAnimationSettings *awakeWallpaperFilterSettings;
+@property (strong) SBFAnimationSettings *sleepWallpaperFilterSettings;
+- (double)speedMultiplierForWake;
+- (double)speedMultiplierForLiftToWake;
+@end
+@implementation SBFWakeAnimationSettings
+- (double)speedMultiplierForWake { return 1.2; }
+- (double)speedMultiplierForLiftToWake { return 1.4; }
+@end
+
+@interface SBScreenWakeAnimationController : NSObject
++ (double)_animationSpeedForBacklightChangeSource:(long long)source isWake:(BOOL)wake;
+- (void)_startWakeAnimationsForWaking:(BOOL)wake animationSettings:(id)settings;
+@end
+@implementation SBScreenWakeAnimationController
++ (NSMethodSignature *)methodSignatureForSelector:(SEL)selector {
+    if (useWakeFallback && selector == NSSelectorFromString(@"_animationSpeedForBacklightChangeSource:isWake:"))
+        return nil;
+    return [super methodSignatureForSelector:selector];
+}
++ (double)_animationSpeedForBacklightChangeSource:(long long)source isWake:(BOOL)wake {
+    SBFWakeAnimationSettings *settings = [SBFWakeAnimationSettings new];
+    double speed = source == 20 ? settings.speedMultiplierForLiftToWake : 1.0;
+    return wake ? speed * settings.speedMultiplierForWake : speed;
+}
+- (void)_startWakeAnimationsForWaking:(BOOL)wake animationSettings:(id)settings {
+    [UIView animateWithDuration:0.5 animations:^{}];
+}
+@end
+
+@interface SBLockScreenManager : NSObject
++ (id)sharedInstance;
+- (BOOL)isUILocked;
+- (BOOL)isLockScreenVisible;
+@end
+@implementation SBLockScreenManager
++ (id)sharedInstance {
+    static SBLockScreenManager *manager;
+    if (!manager) manager = [self new];
+    return manager;
+}
+- (BOOL)isUILocked { return lockScreenVisible; }
+- (BOOL)isLockScreenVisible { return lockScreenVisible; }
+@end
+
+@interface CSLockScreenSettings : NSObject
+@property (strong) SBFAnimationSettings *unlockWallpaperOutSettings;
+@property (strong) SBFAnimationSettings *unlockWallpaperInSettings;
+@property (strong) SBFAnimationSettings *unlockToPhoneWallpaperOutSettings;
+@property (strong) SBFAnimationSettings *unlockToPhoneWallpaperInSettings;
+@end
+@implementation CSLockScreenSettings
+@end
+
+@interface SBCoverSheetSlidingViewController : NSObject
+- (void)_finishTransitionToPresented:(BOOL)presented animated:(BOOL)animated withCompletion:(id)completion;
+@end
+@implementation SBCoverSheetSlidingViewController
+- (void)_finishTransitionToPresented:(BOOL)presented animated:(BOOL)animated withCompletion:(id)completion {
+    if (raiseDuringUnlock) [NSException raise:@"fixture" format:@"unlock failure"];
+    [UIView _animateUsingSpringWithTension:300 friction:34 interactive:NO animations:^{}
+        completion:completion];
+}
+@end
+
 static void near(double actual, double expected) { assert(fabs(actual - expected) < 1e-9); }
 static void testUIKit(void) {
     __block unsigned completionCount = 0;
     [UIView animateWithDuration:0.5 animations:^{} completion:^(BOOL done) {
         assert(done); completionCount++;
     }];
-    near(durations.lastObject.doubleValue, 0.4); assert(completionCount == 1);
+    near(durations.lastObject.doubleValue, 0.5 / 1.9); assert(completionCount == 1);
     assert((lastOptions & (3 << 16)) == UIViewAnimationOptionCurveEaseOut);
     [UIView animateWithDuration:0.5 delay:0.2 usingSpringWithDamping:0.4 initialSpringVelocity:1
         options:UIViewAnimationOptionAllowUserInteraction animations:^{
             [UIView animateWithDuration:0.3 animations:^{}];
         } completion:nil];
     assert(!originalSpring);
-    near(durations[durations.count - 2].doubleValue, 0.4);
+    near(durations[durations.count - 2].doubleValue, 0.5 / 1.9);
     near(durations.lastObject.doubleValue, 0.3); // nested call is not scaled twice
     [UIView animateWithDuration:0.5 delay:0.2 options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:nil];
     near(lastDelay, 0.2);
@@ -119,21 +196,21 @@ static void testUIKit(void) {
 static void testPropertyAnimator(void) {
     UIViewPropertyAnimator *a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5
         curve:UIViewAnimationCurveLinear animations:^{}];
-    near(a.duration, 0.4);
+    near(a.duration, 0.5 / 1.9);
     assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveEaseOut);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 timingParameters:nil];
-    near(a.duration, 0.4); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveEaseOut);
+    near(a.duration, 0.5 / 1.9); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveEaseOut);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 controlPoint1:CGPointMake(1, 0)
         controlPoint2:CGPointMake(1, 0) animations:^{}];
-    near(a.duration, 0.4); near(lastP1.x, 0); near(lastP2.x, 0.58); near(lastP2.y, 1);
+    near(a.duration, 0.5 / 1.9); near(lastP1.x, 0); near(lastP2.x, 0.58); near(lastP2.y, 1);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 dampingRatio:0.4 animations:^{}];
-    near(a.duration, 0.4); assert(!originalSpring);
+    near(a.duration, 0.5 / 1.9); assert(!originalSpring);
     __block unsigned finished = 0;
     a = [UIViewPropertyAnimator runningPropertyAnimatorWithDuration:0.5 delay:0.2
         options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:^(UIViewAnimatingPosition p) {
             assert(p == UIViewAnimatingPositionEnd); finished++;
         }];
-    near(a.duration, 0.4); near(lastDelay, 0.2); assert(finished == 1);
+    near(a.duration, 0.5 / 1.9); near(lastDelay, 0.2); assert(finished == 1);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:5 curve:UIViewAnimationCurveLinear animations:^{}];
     near(a.duration, 5); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
 }
@@ -147,27 +224,145 @@ static void testSpringBoard(void) {
     source.duration = 0.3; source.delay = 0.15; source.speed = 1;
     id result = [source BSAnimationSettings];
     assert(![result respondsToSelector:NSSelectorFromString(@"setSpeed:")]);
-    near([result duration], 0.24); near([result delay], 0.15); near(source.duration, 0.3);
+    near([result duration], 0.3 / 1.9); near([result delay], 0.15); near(source.duration, 0.3);
     assert([result timingFunction]);
     assert(![result isKindOfClass:RTTestAnimationSettings.class]);
     source.speed = 2;
-    near([[source BSAnimationSettings] duration], 0.12);
+    near([[source BSAnimationSettings] duration], 0.3 / 3.8);
     atomic_store(&RTAnimationFactor, 2);
-    near([[source BSAnimationSettings] duration], 0.24);
+    near([[source BSAnimationSettings] duration], 0.3 / 5.6);
     atomic_store(&RTAnimationFactor, 1);
     assert(!RTCreateAnimationSettings(Nil, 0.3, 0, 1, 1, nil));
     assert(!RTCreateAnimationSettings(RTTestAnimationSettings.class, NAN, 0, 1, 1, nil));
     RTTestAnimationSettings *fixture = RTCreateAnimationSettings(RTTestAnimationSettings.class, 0.3, 0, 1, 1, nil);
-    near(fixture.duration, 0.24);
+    near(fixture.duration, 0.3 / 1.9);
     source.duration = 3;
     near([[source BSAnimationSettings] duration], 3);
 }
-int main(void) {
+
+static void testAccelerationDirection(void) {
+    SBFAnimationSettings *source = [SBFAnimationSettings new];
+    source.duration = 0.5; source.speed = 1;
+    for (unsigned i = 0; i <= 100; i++) {
+        double level = i / 10.0;
+        double expected = 0.5 / (1.0 + 0.9 * level);
+        atomic_store(&RTAnimationFactor, level);
+        [UIView animateWithDuration:0.5 animations:^{}];
+        near(durations.lastObject.doubleValue, expected);
+        UIViewPropertyAnimator *a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5
+            curve:UIViewAnimationCurveLinear animations:^{}];
+        near(a.duration, expected);
+        near([[source BSAnimationSettings] duration], expected);
+    }
+    atomic_store(&RTAnimationFactor, 1);
+}
+
+static SBFAnimationSettings *lockAnimation(void) {
+    SBFAnimationSettings *s = [SBFAnimationSettings new]; s.duration = 0.5; s.speed = 1;
+    return s;
+}
+
+static void testLockAnimations(void) {
+    SBFWakeAnimationSettings *wake = [SBFWakeAnimationSettings new];
+    CSLockScreenSettings *lock = [CSLockScreenSettings new];
+    SBCoverSheetSlidingViewController *sliding = [SBCoverSheetSlidingViewController new];
+    wake.contentWakeSettings = lockAnimation();
+    wake.awakeWallpaperFilterSettings = lockAnimation();
+    wake.sleepWallpaperFilterSettings = lockAnimation();
+    lock.unlockWallpaperOutSettings = lockAnimation();
+    lock.unlockWallpaperInSettings = lockAnimation();
+    lock.unlockToPhoneWallpaperOutSettings = lockAnimation();
+    lock.unlockToPhoneWallpaperInSettings = lockAnimation();
+    atomic_store(&RTWakeAnimations, true); atomic_store(&RTWakeAcceleration, 5);
+    atomic_store(&RTUnlockAnimations, true); atomic_store(&RTUnlockAcceleration, 2);
+    for (unsigned mainEnabled = 0; mainEnabled <= 1; mainEnabled++) {
+        atomic_store(&RTAnimations, mainEnabled);
+        atomic_store(&RTAnimationFactor, 10);
+        near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:0 isWake:YES], 1.2 * 5.5);
+        near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:YES], 1.2 * 1.4 * 5.5);
+        near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:NO], 1.4);
+        [[SBScreenWakeAnimationController new] _startWakeAnimationsForWaking:YES animationSettings:nil];
+        near(durations.lastObject.doubleValue, 0.5); // caller already applied the wake speed
+        for (SBFAnimationSettings *s in @[wake.contentWakeSettings, wake.awakeWallpaperFilterSettings,
+                                        wake.sleepWallpaperFilterSettings])
+            near([[s BSAnimationSettings] duration], 0.5);
+        for (SBFAnimationSettings *s in @[lock.unlockWallpaperOutSettings, lock.unlockWallpaperInSettings,
+                                        lock.unlockToPhoneWallpaperOutSettings, lock.unlockToPhoneWallpaperInSettings])
+            near([[s BSAnimationSettings] duration], 0.5 / 2.8);
+        originalSpring = NO;
+        __block unsigned completed = 0;
+        [sliding _finishTransitionToPresented:NO animated:YES withCompletion:^(BOOL finished) {
+            assert(finished); completed++;
+        }];
+        CASpringAnimation *spring = [CASpringAnimation animation];
+        spring.mass = 1; spring.stiffness = 300; spring.damping = 34; spring.initialVelocity = 0;
+        near(durations.lastObject.doubleValue, spring.settlingDuration / 2.8);
+        assert(!originalSpring && completed == 1);
+    }
+    // Changing unlock must not affect wake; zero restores the source speed/settings.
+    atomic_store(&RTUnlockAcceleration, 0);
+    near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:0 isWake:YES], 1.2 * 5.5);
+    near([[lock.unlockWallpaperInSettings BSAnimationSettings] duration], 0.5);
+    originalSpring = NO;
+    [sliding _finishTransitionToPresented:NO animated:YES withCompletion:nil];
+    assert(originalSpring);
+    atomic_store(&RTWakeAcceleration, 0);
+    near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:YES], 1.2 * 1.4);
+    atomic_store(&RTUnlockAcceleration, 10); atomic_store(&RTWakeAcceleration, 10);
+    atomic_store(&RTUnlockAnimations, false); atomic_store(&RTWakeAnimations, false);
+    near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:YES], 1.2 * 1.4);
+    near([[lock.unlockWallpaperInSettings BSAnimationSettings] duration], 0.5);
+    originalSpring = NO;
+    [sliding _finishTransitionToPresented:NO animated:YES withCompletion:nil];
+    assert(originalSpring);
+    atomic_store(&RTUnlockAnimations, true);
+    originalSpring = NO;
+    [sliding _finishTransitionToPresented:YES animated:YES withCompletion:nil];
+    assert(originalSpring); // presenting the cover sheet is not unlocking
+    lockScreenVisible = NO;
+    originalSpring = NO;
+    [sliding _finishTransitionToPresented:NO animated:YES withCompletion:nil];
+    assert(originalSpring); // dismissing Notification Center is not unlocking
+    lockScreenVisible = YES;
+    originalSpring = NO;
+    [UIView _animateUsingSpringWithTension:300 friction:34 interactive:NO animations:^{} completion:nil];
+    assert(originalSpring); // unlocked context must not leak
+    raiseDuringUnlock = YES;
+    @try { [sliding _finishTransitionToPresented:NO animated:YES withCompletion:nil]; }
+    @catch (NSException *exception) { assert([exception.name isEqualToString:@"fixture"]); }
+    raiseDuringUnlock = NO;
+    [UIView animateWithDuration:0.5 animations:^{}];
+    near(durations.lastObject.doubleValue, 0.05);
+    atomic_store(&RTWakeAnimations, true);
+    for (unsigned i = 0; i <= 100; i++) {
+        double level = i / 10.0;
+        atomic_store(&RTWakeAcceleration, level);
+        atomic_store(&RTUnlockAcceleration, level);
+        near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:YES],
+             1.2 * 1.4 * (1.0 + 0.9 * level));
+        near([[lock.unlockWallpaperInSettings BSAnimationSettings] duration], 0.5 / (1.0 + 0.9 * level));
+    }
+    for (unsigned reason = 0; reason < 3; reason++) {
+        atomic_store(&RTEnabled, reason != 0);
+        atomic_store(&RTAnimationExcluded, reason == 1); reducedMotion = reason == 2;
+        atomic_store(&RTWakeAnimations, true);
+        near([SBScreenWakeAnimationController _animationSpeedForBacklightChangeSource:20 isWake:YES], 1.2 * 1.4);
+        near([[lock.unlockWallpaperInSettings BSAnimationSettings] duration], 0.5);
+    }
+    atomic_store(&RTEnabled, true); atomic_store(&RTAnimations, true);
+    atomic_store(&RTAnimationExcluded, false); reducedMotion = NO;
+    atomic_store(&RTWakeAnimations, false); atomic_store(&RTUnlockAnimations, false);
+    atomic_store(&RTAnimationFactor, 1);
+}
+int main(int argc, const char *argv[]) {
     @autoreleasepool {
+        useWakeFallback = argc > 1 && strcmp(argv[1], "--wake-fallback") == 0;
         durations = [NSMutableArray array];
         atomic_store(&RTHighRefresh, false);
+        atomic_store(&RTAnimationFactor, 1);
         RTInstallAnimationHooks(YES);
         testUIKit(); testPropertyAnimator(); testSpringBoard();
+        testAccelerationDirection(); testLockAnimations();
         for (unsigned reason = 0; reason < 4; reason++) {
             atomic_store(&RTEnabled, reason != 0);
             atomic_store(&RTAnimations, reason != 1);
@@ -182,7 +377,7 @@ int main(void) {
             SBFAnimationSettings *source = [SBFAnimationSettings new]; source.duration = 0.3; source.speed = 1;
             near([[source BSAnimationSettings] duration], 0.3);
         }
-        puts("PASS: real Logos hooks on mock UIKit/BS classes; immutable factory, property animators, nested scaling, callbacks, gating");
+        puts("PASS: Logos fixtures; monotonic acceleration, native zero, independent wake/unlock, nesting, callbacks, gating");
     }
     return 0;
 }

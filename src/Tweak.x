@@ -248,7 +248,7 @@ static void RTUpdateZombieReaping(void) {
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,
-            CFNotificationSuspensionBehaviorCoalesce);
+            CFNotificationSuspensionBehaviorDeliverImmediately);
         RTInstallAnimationHooks(RTManagesPower);
         if (RTManagesPower) {
             notify_register_dispatch("com.12233sjjs.relaxtune.respring", &RTRespringToken,

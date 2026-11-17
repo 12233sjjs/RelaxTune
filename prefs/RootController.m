@@ -22,6 +22,8 @@ static void RTWritePreference(NSString *key, id value) {
 
 @interface RTFactorCell : PSTableCell
 @property(nonatomic, strong) UIStepper *factorStepper;
+@property(nonatomic, copy) NSString *preferenceKey;
+@property(nonatomic, copy) NSString *settingTitle;
 @end
 
 @implementation RTFactorCell
@@ -32,11 +34,13 @@ static void RTWritePreference(NSString *key, id value) {
         _factorStepper = [[UIStepper alloc] init];
         _factorStepper.minimumValue = 0.0;
         _factorStepper.maximumValue = 10.0;
-        _factorStepper.stepValue = 0.01;
+        _factorStepper.stepValue = 0.1;
         _factorStepper.wraps = NO;
-        _factorStepper.accessibilityLabel = @"Animation duration multiplier";
-        id saved = RTReadPreference(@"AnimationFactor");
-        double factor = [saved isKindOfClass:NSNumber.class] ? [saved doubleValue] : 1.0;
+        _preferenceKey = [specifier propertyForKey:@"key"];
+        _settingTitle = [specifier propertyForKey:@"label"];
+        _factorStepper.accessibilityLabel = _settingTitle;
+        id saved = RTReadPreference(_preferenceKey);
+        double factor = [saved isKindOfClass:NSNumber.class] ? [saved doubleValue] : 0.0;
         _factorStepper.value = RTClampFactor(factor);
         [_factorStepper addTarget:self action:@selector(factorChanged:) forControlEvents:UIControlEventValueChanged];
         self.accessoryView = _factorStepper;
@@ -46,12 +50,12 @@ static void RTWritePreference(NSString *key, id value) {
     return self;
 }
 - (void)updateLabel {
-    self.textLabel.text = @"动画时长比例";
-    self.detailTextLabel.text = [NSString stringWithFormat:@"%.2f ×", self.factorStepper.value];
+    self.textLabel.text = self.settingTitle;
+    self.detailTextLabel.text = [NSString stringWithFormat:@"%.1f", self.factorStepper.value];
 }
 - (void)factorChanged:(UIStepper *)stepper {
     stepper.value = RTClampFactor(stepper.value);
-    RTWritePreference(@"AnimationFactor", @(stepper.value));
+    RTWritePreference(self.preferenceKey, @(stepper.value));
     [self updateLabel];
 }
 @end
