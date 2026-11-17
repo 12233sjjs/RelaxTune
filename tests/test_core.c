@@ -14,6 +14,7 @@ static void testAnimation(void) {
         double sbDuration = 0.5 / RTSmoothPlaybackSpeed(1.0, value);
         assert(fabs(uiDuration - 0.5 / expectedSpeed) < 1e-12);
         assert(fabs(uiDuration - sbDuration) < 1e-12);
+        assert(fabs(RTScaledDelay(0.2, value) - 0.2 / expectedSpeed) < 1e-12);
         assert(uiDuration < previousDuration);
         assert(uiDuration > 0.0 && isfinite(uiDuration));
         previousDuration = uiDuration;
@@ -30,6 +31,12 @@ static void testAnimation(void) {
     assert(RTScaledDuration(0.05, 0.0) == 0.05);
     assert(RTScaledDuration(0.5, 0.0) == 0.5);
     assert(RTScaledDuration(0.5, 10.0) == 0.05);
+    assert(RTScaledDelay(0.2, 0.0) == 0.2);
+    assert(RTScaledDelay(0.2, 10.0) == 0.02);
+    assert(RTScaledDelay(0.0, 10.0) == 0.0);
+    assert(RTScaledDelay(-1.0, 10.0) == -1.0);
+    assert(isnan(RTScaledDelay(NAN, 10.0)));
+    assert(RTScaledDelay(INFINITY, 10.0) == INFINITY);
     assert(RTSmoothPlaybackSpeed(1.0, 0.0) == 1.0);
     assert(RTSmoothPlaybackSpeed(1.0, 10.0) == 10.0);
     assert(RTSmoothPlaybackSpeed(NAN, 0.0) == 1.0);

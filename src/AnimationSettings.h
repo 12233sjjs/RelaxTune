@@ -18,6 +18,6 @@ static inline id RTCreateAnimationSettings(Class factoryClass, double duration, 
     // BSAnimationSettings is immutable; its speed setter is not available.
     double scaledDuration = duration / RTSmoothPlaybackSpeed(speed, factor);
     return ((id (*)(id, SEL, double, double, id))objc_msgSend)(
-        factoryClass, factory, scaledDuration, delay, timing);
+        factoryClass, factory, scaledDuration, RTScaledDelay(delay, factor), timing);
 }
 #endif

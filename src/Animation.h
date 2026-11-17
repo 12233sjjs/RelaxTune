@@ -17,6 +17,11 @@ static inline double RTScaledDuration(double duration, double factor) {
         ? duration / RTAnimationSpeed(factor) : duration;
 }
 
+static inline double RTScaledDelay(double delay, double factor) {
+    return isfinite(delay) && delay >= 0.0
+        ? delay / RTAnimationSpeed(factor) : delay;
+}
+
 static inline double RTSmoothPlaybackSpeed(double speed, double factor) {
     if (!isfinite(speed) || speed <= 0.0) speed = 1.0;
     double scaled = speed * RTAnimationSpeed(factor);

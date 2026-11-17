@@ -8,7 +8,10 @@ static __thread unsigned RTAnimationDepth;
 static __thread BOOL RTConvertingSpringAnimation;
 static __thread BOOL RTUnlockTransition;
 static __thread BOOL RTWakeTransition;
+static __thread unsigned RTFolderAnimationDepth;
 static char RTLockSettingsKey;
+static char RTFolderSettingsKey;
+static Class RTFolderSettingsClass;
 typedef NS_ENUM(NSInteger, RTLockSettingsKind) { RTWakeSettings = 1, RTUnlockSettings };
 
 static double RTCurrentAcceleration(void) {
@@ -16,7 +19,7 @@ static double RTCurrentAcceleration(void) {
 }
 
 static BOOL RTAnimationHooksActive(void) {
-    if (RTWakeTransition) return NO;
+    if (RTWakeTransition || RTFolderAnimationDepth) return NO;
     BOOL enabled = RTUnlockTransition
         ? atomic_load(&RTUnlockAnimations) && RTCurrentAcceleration() > 0.0
         : atomic_load(&RTAnimations);
@@ -29,8 +32,14 @@ static NSTimeInterval RTDuration(NSTimeInterval duration) {
         ? RTScaledDuration(duration, RTCurrentAcceleration()) : duration;
 }
 
+static NSTimeInterval RTDelay(NSTimeInterval delay, NSTimeInterval duration) {
+    return RTAnimationDepth == 1 && RTAnimationHooksActive() &&
+           duration >= 0.12 && duration <= 1.0
+        ? RTScaledDelay(delay, RTCurrentAcceleration()) : delay;
+}
+
 static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
-    if (!RTAnimationHooksActive()) return options;
+    if (RTAnimationDepth != 1 || !RTAnimationHooksActive()) return options;
     UIViewAnimationOptions curveMask = UIViewAnimationOptionCurveEaseIn |
                                        UIViewAnimationOptionCurveEaseOut |
                                        UIViewAnimationOptionCurveLinear;
@@ -83,7 +92,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
         %orig(duration, animations);
         return;
     }
-    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
+    [self animateWithDuration:duration delay:0 options:0
                    animations:animations completion:nil];
 }
 + (void)animateWithDuration:(NSTimeInterval)duration animations:(void (^)(void))animations
@@ -92,7 +101,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
         %orig(duration, animations, completion);
         return;
     }
-    [self animateWithDuration:duration delay:0 options:RTSmoothOptions(0)
+    [self animateWithDuration:duration delay:0 options:0
                    animations:animations completion:completion];
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
@@ -101,15 +110,16 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
     RTAnimationDepth++;
     @try {
         NSTimeInterval value = RTConvertingSpringAnimation ? duration : RTDuration(duration);
+        NSTimeInterval wait = RTConvertingSpringAnimation ? delay : RTDelay(delay, duration);
         UIViewAnimationOptions smoothed = RTSmoothOptions(options);
-        %orig(value, delay, smoothed, animations, completion);
+        %orig(value, wait, smoothed, animations, completion);
     } @finally { RTAnimationDepth--; }
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
     usingSpringWithDamping:(CGFloat)damping initialSpringVelocity:(CGFloat)velocity
                    options:(UIViewAnimationOptions)options animations:(void (^)(void))animations
                 completion:(void (^)(BOOL))completion {
-    if (!RTAnimationHooksActive()) {
+    if (RTAnimationDepth || !RTAnimationHooksActive()) {
         %orig(duration, delay, damping, velocity, options, animations, completion);
         return;
     }
@@ -117,7 +127,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
     BOOL wasConverting = RTConvertingSpringAnimation;
     @try {
         RTConvertingSpringAnimation = YES;
-        [UIView animateWithDuration:RTDuration(duration) delay:delay
+        [UIView animateWithDuration:RTDuration(duration) delay:RTDelay(delay, duration)
                            options:RTSmoothOptions(options) animations:animations completion:completion];
     } @finally {
         RTConvertingSpringAnimation = wasConverting;
@@ -132,7 +142,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
 + (void)_animateUsingSpringWithTension:(double)tension friction:(double)friction
                           interactive:(BOOL)interactive animations:(void (^)(void))animations
                            completion:(void (^)(BOOL))completion {
-    if (!RTUnlockTransition || !RTAnimationHooksActive() || interactive ||
+    if (RTAnimationDepth || !RTUnlockTransition || !RTAnimationHooksActive() || interactive ||
         !isfinite(tension) || tension <= 0 || !isfinite(friction) || friction <= 0) {
         %orig(tension, friction, interactive, animations, completion);
         return;
@@ -199,7 +209,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
                               completion:(void (^)(UIViewAnimatingPosition))completion {
     RTAnimationDepth++;
     @try {
-        return %orig(RTDuration(duration), delay, RTSmoothOptions(options), animations, completion);
+        return %orig(RTDuration(duration), RTDelay(delay, duration), RTSmoothOptions(options), animations, completion);
     } @finally { RTAnimationDepth--; }
 }
 %end
@@ -209,6 +219,10 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
 %hook SBFAnimationSettings
 - (id)BSAnimationSettings {
     id original = %orig;
+    if (RTFolderAnimationDepth || objc_getAssociatedObject(self, &RTFolderSettingsKey)) {
+        RTApply120FrameRate(original);
+        return original;
+    }
     NSNumber *kind = objc_getAssociatedObject(self, &RTLockSettingsKey);
     if (kind.integerValue == RTWakeSettings) {
         RTApply120FrameRate(original);
@@ -238,6 +252,65 @@ static id RTMarkLockSettings(id settings, RTLockSettingsKind kind) {
     if (settings) objc_setAssociatedObject(settings, &RTLockSettingsKey, @(kind), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     return settings;
 }
+
+static id RTMarkFolderSettings(id owner, id settings) {
+    if (settings && RTFolderSettingsClass && [owner isKindOfClass:RTFolderSettingsClass])
+        objc_setAssociatedObject(settings, &RTFolderSettingsKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return settings;
+}
+
+%group RTFolderCentralSettingsHooks
+%hook SBHIconAnimationSettings
+- (id)centralAnimationSettings { return RTMarkFolderSettings(self, %orig); }
+%end
+%end
+
+%group RTFolderScaleSettingsHooks
+%hook SBHScaleZoomSettings
+- (id)crossfadeSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)effectiveCrossfadeAnimationSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)iconGridFadeSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)outerFolderFadeSettings { return RTMarkFolderSettings(self, %orig); }
+%end
+%end
+
+%group RTFolderInnerSettingsHooks
+%hook SBHFolderZoomSettings
+- (id)innerFolderFadeSettings { return RTMarkFolderSettings(self, %orig); }
+%end
+%end
+
+%group RTFolderOuterAnimationHooks
+%hook SBFolderIconZoomAnimator
+- (void)_prepareAnimation {
+    RTFolderAnimationDepth++;
+    @try { %orig; }
+    @finally { RTFolderAnimationDepth--; }
+}
+- (void)_performAnimationToFraction:(double)fraction withCentralAnimationSettings:(id)settings
+                             delay:(double)delay alreadyAnimating:(BOOL)animating
+                  sharedCompletion:(id)completion {
+    RTFolderAnimationDepth++;
+    @try { %orig(fraction, settings, delay, animating, completion); }
+    @finally { RTFolderAnimationDepth--; }
+}
+%end
+%end
+
+%group RTFolderInnerAnimationHooks
+%hook _SBInnerFolderIconZoomAnimator
+- (void)_prepareAnimation {
+    RTFolderAnimationDepth++;
+    @try { %orig; }
+    @finally { RTFolderAnimationDepth--; }
+}
+- (void)_animateToFraction:(double)fraction afterDelay:(double)delay withSharedCompletion:(id)completion {
+    RTFolderAnimationDepth++;
+    @try { %orig(fraction, delay, completion); }
+    @finally { RTFolderAnimationDepth--; }
+}
+%end
+%end
 
 static double RTWakeSpeed(double original) {
     if (!atomic_load(&RTEnabled) || !atomic_load(&RTWakeAnimations) ||
@@ -338,6 +411,42 @@ void RTInstallAnimationHooks(BOOL springboard) {
         %init(RTSBFNonSpring);
     }
     if (!springboard) return;
+    RTFolderSettingsClass = NSClassFromString(@"SBHFolderZoomSettings");
+    Class iconSettings = NSClassFromString(@"SBHIconAnimationSettings");
+    if (RTFolderSettingsClass && RTMethodMatches(iconSettings, @"centralAnimationSettings", @encode(id), 2)) {
+        %init(RTFolderCentralSettingsHooks);
+    }
+    Class scaleSettings = NSClassFromString(@"SBHScaleZoomSettings");
+    if (RTFolderSettingsClass && RTMethodMatches(scaleSettings, @"crossfadeSettings", @encode(id), 2) &&
+        RTMethodMatches(scaleSettings, @"effectiveCrossfadeAnimationSettings", @encode(id), 2) &&
+        RTMethodMatches(scaleSettings, @"iconGridFadeSettings", @encode(id), 2) &&
+        RTMethodMatches(scaleSettings, @"outerFolderFadeSettings", @encode(id), 2)) {
+        %init(RTFolderScaleSettingsHooks);
+    }
+    if (RTMethodMatches(RTFolderSettingsClass, @"innerFolderFadeSettings", @encode(id), 2)) {
+        %init(RTFolderInnerSettingsHooks);
+    }
+    Class outerFolder = NSClassFromString(@"SBFolderIconZoomAnimator");
+    NSMethodSignature *outer = [outerFolder instanceMethodSignatureForSelector:NSSelectorFromString(
+        @"_performAnimationToFraction:withCentralAnimationSettings:delay:alreadyAnimating:sharedCompletion:")];
+    if (RTMethodMatches(outerFolder, @"_prepareAnimation", @encode(void), 2) &&
+        outer.numberOfArguments == 7 && strcmp(outer.methodReturnType, @encode(void)) == 0 &&
+        strcmp([outer getArgumentTypeAtIndex:2], @encode(double)) == 0 &&
+        [outer getArgumentTypeAtIndex:3][0] == '@' &&
+        strcmp([outer getArgumentTypeAtIndex:4], @encode(double)) == 0 &&
+        RTBoolArgument(outer, 5) && [outer getArgumentTypeAtIndex:6][0] == '@') {
+        %init(RTFolderOuterAnimationHooks);
+    }
+    Class innerFolder = NSClassFromString(@"_SBInnerFolderIconZoomAnimator");
+    NSMethodSignature *inner = [innerFolder instanceMethodSignatureForSelector:NSSelectorFromString(
+        @"_animateToFraction:afterDelay:withSharedCompletion:")];
+    if (RTMethodMatches(innerFolder, @"_prepareAnimation", @encode(void), 2) &&
+        inner.numberOfArguments == 5 && strcmp(inner.methodReturnType, @encode(void)) == 0 &&
+        strcmp([inner getArgumentTypeAtIndex:2], @encode(double)) == 0 &&
+        strcmp([inner getArgumentTypeAtIndex:3], @encode(double)) == 0 &&
+        [inner getArgumentTypeAtIndex:4][0] == '@') {
+        %init(RTFolderInnerAnimationHooks);
+    }
     Class wake = NSClassFromString(@"SBFWakeAnimationSettings");
     Class controller = NSClassFromString(@"SBScreenWakeAnimationController");
     NSMethodSignature *wakeSpeed = [controller methodSignatureForSelector:NSSelectorFromString(

@@ -10,6 +10,7 @@ static double lastDelay;
 static UIViewAnimationOptions lastOptions;
 static BOOL originalSpring;
 static BOOL raiseDuringUnlock;
+static BOOL raiseDuringFolder;
 static BOOL lockScreenVisible = YES;
 static BOOL useWakeFallback;
 static CGPoint lastP1, lastP2;
@@ -106,6 +107,75 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 }
 @end
 
+@interface SBHIconAnimationSettings : NSObject
+@property (strong) SBFAnimationSettings *centralAnimationSettings;
+@end
+@implementation SBHIconAnimationSettings
+@end
+@interface SBHScaleZoomSettings : SBHIconAnimationSettings
+@property (strong) SBFAnimationSettings *crossfadeSettings;
+@property (strong) SBFAnimationSettings *iconGridFadeSettings;
+@property (strong) SBFAnimationSettings *outerFolderFadeSettings;
+- (id)effectiveCrossfadeAnimationSettings;
+@end
+@implementation SBHScaleZoomSettings
+- (id)effectiveCrossfadeAnimationSettings { return self.crossfadeSettings; }
+@end
+@interface SBHFolderZoomSettings : SBHScaleZoomSettings
+@property (strong) SBFAnimationSettings *innerFolderFadeSettings;
+@end
+@implementation SBHFolderZoomSettings
+@end
+@interface SBHFolderOpenSettings : SBHFolderZoomSettings
+@end
+@implementation SBHFolderOpenSettings
+@end
+@interface SBHFolderCloseSettings : SBHFolderZoomSettings
+@end
+@implementation SBHFolderCloseSettings
+@end
+
+static double folderExportDuration;
+static BOOL folderExportNative;
+static double folderPropertyDuration;
+static void folderFixtureAnimation(void) {
+    [UIView animateWithDuration:0.5 delay:0.2 usingSpringWithDamping:0.4
+        initialSpringVelocity:1 options:UIViewAnimationOptionCurveLinear
+        animations:^{} completion:nil];
+    UIViewPropertyAnimator *a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5
+        curve:UIViewAnimationCurveLinear animations:^{}];
+    folderPropertyDuration = a.duration;
+    assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
+}
+@interface SBFolderIconZoomAnimator : NSObject
+- (void)_prepareAnimation;
+- (void)_performAnimationToFraction:(double)fraction withCentralAnimationSettings:(id)settings
+    delay:(double)delay alreadyAnimating:(BOOL)animating sharedCompletion:(id)completion;
+@end
+@implementation SBFolderIconZoomAnimator
+- (void)_prepareAnimation { folderFixtureAnimation(); }
+- (void)_performAnimationToFraction:(double)fraction withCentralAnimationSettings:(id)settings
+    delay:(double)delay alreadyAnimating:(BOOL)animating sharedCompletion:(id)completion {
+    if (raiseDuringFolder) [NSException raise:@"folder fixture" format:@"failure"];
+    id result = [settings BSAnimationSettings];
+    folderExportDuration = [result duration];
+    folderExportNative = [result isKindOfClass:RTTestAnimationSettings.class];
+    folderFixtureAnimation();
+    if (completion) ((void (^)(void))completion)();
+}
+@end
+@interface _SBInnerFolderIconZoomAnimator : NSObject
+- (void)_prepareAnimation;
+- (void)_animateToFraction:(double)fraction afterDelay:(double)delay withSharedCompletion:(id)completion;
+@end
+@implementation _SBInnerFolderIconZoomAnimator
+- (void)_prepareAnimation { folderFixtureAnimation(); }
+- (void)_animateToFraction:(double)fraction afterDelay:(double)delay withSharedCompletion:(id)completion {
+    folderFixtureAnimation();
+    if (completion) ((void (^)(void))completion)();
+}
+@end
+
 @interface SBFWakeAnimationSettings : NSObject
 @property (strong) SBFAnimationSettings *contentWakeSettings;
 @property (strong) SBFAnimationSettings *awakeWallpaperFilterSettings;
@@ -189,7 +259,7 @@ static void testUIKit(void) {
     near(durations[durations.count - 2].doubleValue, 0.5 / 1.9);
     near(durations.lastObject.doubleValue, 0.3); // nested call is not scaled twice
     [UIView animateWithDuration:0.5 delay:0.2 options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:nil];
-    near(lastDelay, 0.2);
+    near(lastDelay, 0.2 / 1.9);
     assert(lastOptions & UIViewAnimationOptionAllowUserInteraction);
     assert(lastOptions & UIViewAnimationOptionBeginFromCurrentState);
 }
@@ -210,7 +280,7 @@ static void testPropertyAnimator(void) {
         options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:^(UIViewAnimatingPosition p) {
             assert(p == UIViewAnimatingPositionEnd); finished++;
         }];
-    near(a.duration, 0.5 / 1.9); near(lastDelay, 0.2); assert(finished == 1);
+    near(a.duration, 0.5 / 1.9); near(lastDelay, 0.2 / 1.9); assert(finished == 1);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:5 curve:UIViewAnimationCurveLinear animations:^{}];
     near(a.duration, 5); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
 }
@@ -224,7 +294,7 @@ static void testSpringBoard(void) {
     source.duration = 0.3; source.delay = 0.15; source.speed = 1;
     id result = [source BSAnimationSettings];
     assert(![result respondsToSelector:NSSelectorFromString(@"setSpeed:")]);
-    near([result duration], 0.3 / 1.9); near([result delay], 0.15); near(source.duration, 0.3);
+    near([result duration], 0.3 / 1.9); near([result delay], 0.15 / 1.9); near(source.duration, 0.3);
     assert([result timingFunction]);
     assert(![result isKindOfClass:RTTestAnimationSettings.class]);
     source.speed = 2;
@@ -253,6 +323,9 @@ static void testAccelerationDirection(void) {
             curve:UIViewAnimationCurveLinear animations:^{}];
         near(a.duration, expected);
         near([[source BSAnimationSettings] duration], expected);
+        [UIView animateWithDuration:0.5 delay:0.2 options:0 animations:^{} completion:nil];
+        near(durations.lastObject.doubleValue, expected);
+        near(lastDelay, 0.2 / (1.0 + 0.9 * level));
     }
     atomic_store(&RTAnimationFactor, 1);
 }
@@ -260,6 +333,77 @@ static void testAccelerationDirection(void) {
 static SBFAnimationSettings *lockAnimation(void) {
     SBFAnimationSettings *s = [SBFAnimationSettings new]; s.duration = 0.5; s.speed = 1;
     return s;
+}
+
+static void testFolderAnimations(void) {
+    atomic_store(&RTAnimationFactor, 10);
+    for (Class cls in @[SBHFolderOpenSettings.class, SBHFolderCloseSettings.class]) {
+        SBHFolderZoomSettings *settings = [cls new];
+        settings.centralAnimationSettings = lockAnimation();
+        settings.crossfadeSettings = lockAnimation();
+        settings.iconGridFadeSettings = lockAnimation();
+        settings.outerFolderFadeSettings = lockAnimation();
+        settings.innerFolderFadeSettings = lockAnimation();
+        for (SBFAnimationSettings *s in @[settings.centralAnimationSettings, settings.crossfadeSettings,
+            settings.effectiveCrossfadeAnimationSettings, settings.iconGridFadeSettings,
+            settings.outerFolderFadeSettings, settings.innerFolderFadeSettings]) {
+            for (unsigned repeat = 0; repeat < 2; repeat++) {
+                id result = [s BSAnimationSettings];
+                near([result duration], 0.5);
+                assert([result isKindOfClass:RTTestAnimationSettings.class]);
+            }
+        }
+    }
+    SBHScaleZoomSettings *appSettings = [SBHScaleZoomSettings new];
+    appSettings.centralAnimationSettings = lockAnimation();
+    appSettings.crossfadeSettings = lockAnimation();
+    near([[appSettings.centralAnimationSettings BSAnimationSettings] duration], 0.05);
+    near([[appSettings.effectiveCrossfadeAnimationSettings BSAnimationSettings] duration], 0.05);
+
+    SBFolderIconZoomAnimator *outer = [SBFolderIconZoomAnimator new];
+    _SBInnerFolderIconZoomAnimator *inner = [_SBInnerFolderIconZoomAnimator new];
+    __block unsigned completed = 0;
+    for (unsigned opening = 0; opening <= 1; opening++) {
+        originalSpring = NO;
+        [outer _prepareAnimation];
+        assert(originalSpring); near(durations.lastObject.doubleValue, 0.5);
+        [outer _performAnimationToFraction:opening withCentralAnimationSettings:lockAnimation()
+            delay:0.2 alreadyAnimating:NO sharedCompletion:^{
+                [inner _animateToFraction:opening afterDelay:0.2 withSharedCompletion:^{ completed++; }];
+            }];
+        assert(originalSpring && folderExportNative);
+        near(folderExportDuration, 0.5); near(folderPropertyDuration, 0.5);
+        near(durations.lastObject.doubleValue, 0.5); near(lastDelay, 0.2);
+        assert((lastOptions & (3 << 16)) == UIViewAnimationOptionCurveLinear);
+        [inner _prepareAnimation];
+        near(durations.lastObject.doubleValue, 0.5);
+    }
+    assert(completed == 2);
+    raiseDuringFolder = YES;
+    @try {
+        [outer _performAnimationToFraction:1 withCentralAnimationSettings:nil delay:0
+            alreadyAnimating:NO sharedCompletion:nil];
+    } @catch (NSException *exception) { assert([exception.name isEqualToString:@"folder fixture"]); }
+    raiseDuringFolder = NO;
+    [UIView animateWithDuration:0.5 animations:^{}];
+    near(durations.lastObject.doubleValue, 0.05);
+    atomic_store(&RTAnimationFactor, 1);
+}
+
+static void testPhaseTiming(void) {
+    atomic_store(&RTAnimationFactor, 1);
+    [UIView animateWithDuration:0.5 delay:0.2 options:UIViewAnimationOptionCurveLinear animations:^{
+        [UIView animateWithDuration:0.3 delay:0.1 options:UIViewAnimationOptionCurveEaseIn
+            animations:^{} completion:nil];
+    } completion:nil];
+    near(durations[durations.count - 2].doubleValue, 0.5 / 1.9);
+    near(durations.lastObject.doubleValue, 0.3); near(lastDelay, 0.1);
+    assert((lastOptions & (3 << 16)) == UIViewAnimationOptionCurveEaseIn);
+    [UIView animateWithDuration:5 delay:0.2 options:0 animations:^{} completion:nil];
+    near(durations.lastObject.doubleValue, 5); near(lastDelay, 0.2);
+    [UIView animateWithDuration:0.5 delay:0.2 usingSpringWithDamping:0.4 initialSpringVelocity:1
+        options:0 animations:^{} completion:nil];
+    near(durations.lastObject.doubleValue, 0.5 / 1.9); near(lastDelay, 0.2 / 1.9);
 }
 
 static void testLockAnimations(void) {
@@ -362,7 +506,7 @@ int main(int argc, const char *argv[]) {
         atomic_store(&RTAnimationFactor, 1);
         RTInstallAnimationHooks(YES);
         testUIKit(); testPropertyAnimator(); testSpringBoard();
-        testAccelerationDirection(); testLockAnimations();
+        testAccelerationDirection(); testPhaseTiming(); testFolderAnimations(); testLockAnimations();
         for (unsigned reason = 0; reason < 4; reason++) {
             atomic_store(&RTEnabled, reason != 0);
             atomic_store(&RTAnimations, reason != 1);
@@ -377,7 +521,7 @@ int main(int argc, const char *argv[]) {
             SBFAnimationSettings *source = [SBFAnimationSettings new]; source.duration = 0.3; source.speed = 1;
             near([[source BSAnimationSettings] duration], 0.3);
         }
-        puts("PASS: Logos fixtures; monotonic acceleration, native zero, independent wake/unlock, nesting, callbacks, gating");
+        puts("PASS: Logos fixtures; synchronized delay/duration, native folders, nesting, acceleration, wake/unlock, callbacks, gating");
     }
     return 0;
 }

@@ -1,5 +1,13 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Phase timing and native folder animations in 0.4.9:
+
+- Scale eligible UIKit startup delays with the same acceleration as duration. Scale exported SpringBoard delay by the acceleration level too, preserving the source delay at level zero. This fixes a demonstrated timing mismatch, not a measured device frame-drop diagnosis.
+- Stop rewriting nested UIView animation options or replacing nested public spring calls. Keep the outer conversion's final delay/duration and preserve nested caller curves; do not force repeated begin-from-current-state options at each level.
+- Exclude folder-specific central, crossfade, icon-grid and inner/outer fade settings from conversion. Use signature-checked SBFolderIconZoomAnimator and _SBInnerFolderIconZoomAnimator entry points to preserve native UIKit timing within folder animation setup. Settings tags keep later exports native without a global folder-visible flag or timer.
+- Keep ordinary App transitions eligible even when launched from a folder. Keep independent 120 Hz requests and wake/unlock controls unchanged; power writes and thermal overrides remain removed.
+- Test proportional delays at all 101 levels, native folder open/close settings, nested callbacks, exception cleanup and unaffected ordinary App settings. Private folder headers are available for iOS 14/17, not exact 16.6.1 device proof. Actual path coverage and visual smoothness still require target-device validation.
+
 Remove all automatic low-power management in 0.4.8:
 
 - Remove the Honor of Kings foreground low-power preference, preference reads, foreground hooks, power writes, callbacks, timeout and state restoration. Delete PowerPolicy.c/h and their build inputs.
