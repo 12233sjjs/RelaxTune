@@ -1,5 +1,11 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+External blacklist self-exclusion removal in 0.4.10:
+
+- Stop reading RootHideConfig.plist and remove the fixed game exclusion from the shared app-hook policy. Once injected, all application bundles are eligible for hooks regardless of RootHide blacklist membership.
+- Retain master/module switches and the separate manual animation exclusion list. Do not change the jailbreak injector or RootHide configuration.
+- A system-level no-injection blacklist can still prevent the library from loading. This package cannot make in-process hooks run when the injector does not load it. Target-device validation has not been performed.
+
 Phase timing and native folder animations in 0.4.9:
 
 - Scale eligible UIKit startup delays with the same acceleration as duration. Scale exported SpringBoard delay by the acceleration level too, preserving the source delay at level zero. This fixes a demonstrated timing mismatch, not a measured device frame-drop diagnosis.

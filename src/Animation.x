@@ -261,22 +261,40 @@ static id RTMarkFolderSettings(id owner, id settings) {
 
 %group RTFolderCentralSettingsHooks
 %hook SBHIconAnimationSettings
-- (id)centralAnimationSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)centralAnimationSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
 %end
 %end
 
 %group RTFolderScaleSettingsHooks
 %hook SBHScaleZoomSettings
-- (id)crossfadeSettings { return RTMarkFolderSettings(self, %orig); }
-- (id)effectiveCrossfadeAnimationSettings { return RTMarkFolderSettings(self, %orig); }
-- (id)iconGridFadeSettings { return RTMarkFolderSettings(self, %orig); }
-- (id)outerFolderFadeSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)crossfadeSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
+- (id)effectiveCrossfadeAnimationSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
+- (id)iconGridFadeSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
+- (id)outerFolderFadeSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
 %end
 %end
 
 %group RTFolderInnerSettingsHooks
 %hook SBHFolderZoomSettings
-- (id)innerFolderFadeSettings { return RTMarkFolderSettings(self, %orig); }
+- (id)innerFolderFadeSettings {
+    id original = %orig;
+    return RTMarkFolderSettings(self, original);
+}
 %end
 %end
 
@@ -284,14 +302,18 @@ static id RTMarkFolderSettings(id owner, id settings) {
 %hook SBFolderIconZoomAnimator
 - (void)_prepareAnimation {
     RTFolderAnimationDepth++;
-    @try { %orig; }
+    @try {
+        %orig;
+    }
     @finally { RTFolderAnimationDepth--; }
 }
 - (void)_performAnimationToFraction:(double)fraction withCentralAnimationSettings:(id)settings
                              delay:(double)delay alreadyAnimating:(BOOL)animating
                   sharedCompletion:(id)completion {
     RTFolderAnimationDepth++;
-    @try { %orig(fraction, settings, delay, animating, completion); }
+    @try {
+        %orig(fraction, settings, delay, animating, completion);
+    }
     @finally { RTFolderAnimationDepth--; }
 }
 %end
@@ -301,12 +323,16 @@ static id RTMarkFolderSettings(id owner, id settings) {
 %hook _SBInnerFolderIconZoomAnimator
 - (void)_prepareAnimation {
     RTFolderAnimationDepth++;
-    @try { %orig; }
+    @try {
+        %orig;
+    }
     @finally { RTFolderAnimationDepth--; }
 }
 - (void)_animateToFraction:(double)fraction afterDelay:(double)delay withSharedCompletion:(id)completion {
     RTFolderAnimationDepth++;
-    @try { %orig(fraction, delay, completion); }
+    @try {
+        %orig(fraction, delay, completion);
+    }
     @finally { RTFolderAnimationDepth--; }
 }
 %end
@@ -321,7 +347,10 @@ static double RTWakeSpeed(double original) {
 
 %group RTWakeSpeedHooks
 %hook SBFWakeAnimationSettings
-- (double)speedMultiplierForWake { return RTWakeSpeed(%orig); }
+- (double)speedMultiplierForWake {
+    double original = %orig;
+    return RTWakeSpeed(original);
+}
 %end
 %end
 
@@ -339,7 +368,9 @@ static double RTWakeSpeed(double original) {
 - (void)_startWakeAnimationsForWaking:(BOOL)waking animationSettings:(id)settings {
     BOOL previous = RTWakeTransition;
     RTWakeTransition = YES;
-    @try { %orig(waking, settings); }
+    @try {
+        %orig(waking, settings);
+    }
     @finally { RTWakeTransition = previous; }
 }
 %end
@@ -347,18 +378,39 @@ static double RTWakeSpeed(double original) {
 
 %group RTWakeSettingsHooks
 %hook SBFWakeAnimationSettings
-- (id)contentWakeSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
-- (id)awakeWallpaperFilterSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
-- (id)sleepWallpaperFilterSettings { return RTMarkLockSettings(%orig, RTWakeSettings); }
+- (id)contentWakeSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTWakeSettings);
+}
+- (id)awakeWallpaperFilterSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTWakeSettings);
+}
+- (id)sleepWallpaperFilterSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTWakeSettings);
+}
 %end
 %end
 
 %group RTUnlockSettingsHooks
 %hook CSLockScreenSettings
-- (id)unlockWallpaperOutSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
-- (id)unlockWallpaperInSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
-- (id)unlockToPhoneWallpaperOutSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
-- (id)unlockToPhoneWallpaperInSettings { return RTMarkLockSettings(%orig, RTUnlockSettings); }
+- (id)unlockWallpaperOutSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTUnlockSettings);
+}
+- (id)unlockWallpaperInSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTUnlockSettings);
+}
+- (id)unlockToPhoneWallpaperOutSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTUnlockSettings);
+}
+- (id)unlockToPhoneWallpaperInSettings {
+    id original = %orig;
+    return RTMarkLockSettings(original, RTUnlockSettings);
+}
 %end
 %end
 

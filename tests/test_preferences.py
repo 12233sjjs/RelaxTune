@@ -73,6 +73,22 @@ if len(sys.argv) == 1:
     tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
     assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
     lifecycle_source = (root / "src/Tweak.x").read_text(encoding="utf-8")
+    # Every packaged app entry uses bundle eligibility, never external blacklists.
+    settings_source = (root / "src/Settings.m").read_text(encoding="utf-8")
+    for removed in ("RootHideConfig.plist", "appconfig", "com.tencent.smoba",
+                    "RTIsExcludedApp"):
+        assert removed not in settings_source, f"External blacklist exclusion restored: {removed}"
+    main_ctor = lifecycle_source.split("%ctor", 1)[1]
+    main_guard = main_ctor.index("if (!RTSpringBoard && !RTShouldLoadAppHooks()) return;")
+    assert main_guard < main_ctor.index("RTLoadSettings();")
+    assert main_guard < main_ctor.index("CFNotificationCenterAddObserver")
+    assert main_guard < main_ctor.index("RTInstallAnimationHooks")
+    assert main_guard < main_ctor.index("%init(RTApps)")
+    network_source = (root / "src/Network.x").read_text(encoding="utf-8")
+    network_ctor = network_source.split("%ctor", 1)[1]
+    network_guard = network_ctor.index("!RTShouldLoadAppHooks()")
+    assert network_guard < network_ctor.index("RTLoadSettings();")
+    assert network_guard < network_ctor.index("MSHookFunction")
     for removed in ("RTApplyPower", "setPowerMode:", "LowPowerMode.framework",
                     "GameRestoreLowPower", "OwnsLowPower", "frontDisplayDidChange:",
                     "com.apple.springboard.lockstate"):

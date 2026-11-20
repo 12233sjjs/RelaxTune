@@ -16,7 +16,7 @@ static int RTSocket(int domain, int type, int protocol) {
 %ctor {
     @autoreleasepool {
         NSBundle *bundle = NSBundle.mainBundle;
-        if (![bundle.bundlePath.pathExtension isEqualToString:@"app"] ||
+        if (!RTShouldLoadAppHooks() ||
             [bundle.bundleIdentifier isEqualToString:@"com.apple.springboard"]) return;
         RTLoadSettings();
         void *symbol = dlsym(RTLD_DEFAULT, "socket");

@@ -1,10 +1,6 @@
 #import "Settings.h"
 #include "Animation.h"
 
-#ifdef RT_ROOTHIDE
-extern const char *jbroot(const char *path);
-#endif
-
 atomic_bool RTEnabled = true;
 atomic_bool RTAnimations = true;
 atomic_bool RTWakeAnimations = false;
@@ -53,29 +49,10 @@ void RTLoadSettings(void) {
     atomic_store(&RTEnabled, RTRead(@"Enabled", YES));
 }
 
-BOOL RTIsExcludedApp(NSString *identifier, NSDictionary *configuration) {
-    if (!identifier.length) return NO;
-    if ([identifier isEqualToString:@"com.tencent.smoba"]) return YES;
-    if (![configuration isKindOfClass:NSDictionary.class]) return NO;
-    id apps = configuration[@"appconfig"];
-    if (![apps isKindOfClass:NSDictionary.class]) return NO;
-    id value = apps[identifier];
-    return [value isKindOfClass:NSNumber.class] && [value boolValue];
-}
-
 BOOL RTShouldLoadAppHooks(void) {
-    NSBundle *bundle = NSBundle.mainBundle;
-    if (![bundle.bundlePath.pathExtension isEqualToString:@"app"]) return NO;
-    NSDictionary *configuration = nil;
-#ifdef RT_ROOTHIDE
-    // Match Relaxin's read-only appconfig lookup using the current jailbreak root.
-    const char *path = jbroot("/var/mobile/Library/RootHide/RootHideConfig.plist");
-    if (path) {
-        configuration = [NSDictionary dictionaryWithContentsOfFile:
-            [NSString stringWithUTF8String:path]];
-    }
-#endif
-    return !RTIsExcludedApp(bundle.bundleIdentifier, configuration);
+    // Once injected, app hooks do not depend on RootHide's blacklist or game ID.
+    // The injector still controls whether this library is loaded in the first place.
+    return [NSBundle.mainBundle.bundlePath.pathExtension isEqualToString:@"app"];
 }
 
 BOOL RTShouldLoadMainTweak(NSString *bundleIdentifier, BOOL isApplicationBundle) {

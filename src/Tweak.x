@@ -63,6 +63,8 @@ static void RTUpdateZombieReaping(void) {
         BOOL isApplicationBundle = [mainBundle.bundlePath.pathExtension isEqualToString:@"app"];
         if (!RTShouldLoadMainTweak(bundleIdentifier, isApplicationBundle)) return;
         RTSpringBoard = [bundleIdentifier isEqualToString:@"com.apple.springboard"];
+        // Restrict hooks to app processes without consulting external blacklists.
+        if (!RTSpringBoard && !RTShouldLoadAppHooks()) return;
         RTLoadSettings();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
             RTSettingsChanged, CFSTR("com.12233sjjs.relaxtune.changed"), NULL,

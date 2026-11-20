@@ -15,7 +15,6 @@ extern _Atomic(double) RTAnimationFactor;
 extern _Atomic(double) RTWakeAcceleration;
 extern _Atomic(double) RTUnlockAcceleration;
 void RTLoadSettings(void);
-BOOL RTIsExcludedApp(NSString *identifier, NSDictionary *configuration);
 BOOL RTShouldLoadAppHooks(void);
 BOOL RTShouldLoadMainTweak(NSString *bundleIdentifier, BOOL isApplicationBundle);
 BOOL RTIsAnimationExcluded(NSString *identifier, NSArray *excludedIdentifiers);
