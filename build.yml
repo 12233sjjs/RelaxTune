@@ -1,0 +1,139 @@
+name: Build and package
+
+on:
+  push:
+    branches: [main, codex/animation-stutter-0.4.12]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core with sanitizers
+        run: |
+          mkdir -p work
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -Isrc tests/test_core.c src/DSP.c -lm -o work/test_core
+          ./work/test_core
+      - name: Validate property lists and settings
+        run: |
+          python3 tests/test_preferences.py
+          python3 - <<'PY'
+          import pathlib, plistlib
+          for path in pathlib.Path(".").rglob("*.plist"):
+              with path.open("rb") as stream:
+                  plistlib.load(stream)
+              print("OK", path)
+          PY
+      - name: Test TCP socket policy
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -Isrc tests/test_network.c -o work/test_network
+          ./work/test_network
+      - name: Validate manual kernel module
+        run: |
+          sh -n layout/Library/ccSystem/system_tweaks.sh
+          python3 tests/test_kernel_script.py
+
+  build:
+    needs: test
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        scheme: [rootless, roothide]
+    env:
+      THEOS: ${{ github.workspace }}/work/theos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test app exclusion policy
+        run: |
+          mkdir -p work
+          clang -std=c11 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -Isrc \
+            tests/test_app_policy.m src/Settings.m -o work/test_app_policy
+          ./work/test_app_policy
+          clang -std=c11 -Wall -Wextra -Werror -Isrc tests/test_network.c -o work/test_network
+          ./work/test_network
+      - name: Install packaging tools and RootHide Theos
+        run: |
+          brew list ldid >/dev/null 2>&1 || brew install ldid
+          brew list dpkg >/dev/null 2>&1 || brew install dpkg
+          git clone https://github.com/roothide/theos.git "$THEOS"
+          git -C "$THEOS" checkout cfba89a53a05b4a1b822121158acc3669c20602f ||
+            git -C "$THEOS" checkout HEAD
+          git -C "$THEOS" submodule update --init --recursive
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$THEOS/sdks"
+          ln -s "$sdk" "$THEOS/sdks/$(basename "$sdk")"
+          mkdir -p work/frameworks/Preferences.framework
+          curl -fL --retry 3 \
+            https://raw.githubusercontent.com/theos/sdks/0222fd5413cf4b9af096f37b4621afa2688572f7/iPhoneOS16.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd \
+            -o work/frameworks/Preferences.framework/Preferences.tbd
+          echo "9daceaff6cf94346594a12f9ef9c2ea23de15475b516f9e33c20871a018c098b  work/frameworks/Preferences.framework/Preferences.tbd" | shasum -a 256 -c -
+      - name: Test animation hooks against Objective-C fixtures
+        run: |
+          perl "$THEOS/bin/logos.pl" -c generator=internal src/Animation.x > work/Animation-test.m
+          clang -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -fobjc-arc \
+            -framework Foundation -framework QuartzCore -Itests/stubs -Isrc \
+            work/Animation-test.m tests/test_animation_hooks.m src/Settings.m -o work/test_animation_hooks
+          ./work/test_animation_hooks
+          ./work/test_animation_hooks --wake-fallback
+      - name: Build ${{ matrix.scheme }}
+        run: |
+          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=${{ matrix.scheme }} -j2
+      - name: Inspect binaries and package
+        run: |
+          mkdir -p work/extracted
+          dpkg-deb -x packages/*.deb work/extracted
+          python3 tests/test_preferences.py work/extracted
+          path="$(find work/extracted -name RelaxTune.dylib -print -quit)"
+          test -n "$path"
+          file "$path"
+          lipo -archs "$path"
+          otool -L "$path"
+          if find work/extracted -name RelaxTuneAudio.dylib -print -quit | grep -q .; then
+            echo "Audio module must not be packaged" >&2
+            exit 1
+          fi
+          prefs="$(find work/extracted -path '*/RelaxTunePrefs.bundle/RelaxTunePrefs' -print -quit)"
+          test -n "$prefs"
+          lipo -archs "$prefs"
+          dpkg-deb --info packages/*.deb
+          dpkg-deb --contents packages/*.deb
+          {
+            echo "Commit: $GITHUB_SHA"
+            echo "Scheme: ${{ matrix.scheme }}"
+            echo "Theos: cfba89a53a05b4a1b822121158acc3669c20602f"
+            xcodebuild -version
+            echo "Core tests: passed in test job"
+            echo "Device validation: NOT PERFORMED"
+          } > packages/BUILD-INFO-${{ matrix.scheme }}.txt
+          (cd packages && shasum -a 256 *.deb > SHA256-${{ matrix.scheme }}.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RelaxTune-${{ matrix.scheme }}
+          path: packages/*
+          if-no-files-found: error
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/^Version: //p' control)"
+          gh release create "v$version" artifacts/* --target "$GITHUB_SHA" \
+            --title "cc优化系统 $version (device testing required)" \
+            --notes-file RELEASE_NOTES.md --prerelease

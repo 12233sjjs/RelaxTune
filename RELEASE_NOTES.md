@@ -1,5 +1,12 @@
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
+Startup animation phase timing in 0.4.12:
+
+- Restrict SpringBoard conversion to source durations from 0.12 through 1.0 seconds, matching UIKit eligibility. Preserve shorter and longer phase durations and delays. Scale eligible durations and delays with the same factor without flooring different phases to a shared 0.12-second duration.
+- Preserve caller UIKit curves and spring parameters, and pass through the original SpringBoard timing function.
+- Keep the configured acceleration level for eligible animations. Fixture tests cover short and long exclusions, range boundaries and curve/spring preservation.
+- This preserves relative timing among eligible phases but allows short phases to finish in fewer frames at higher acceleration levels. No iPhone frame-time measurement or device validation is available.
+
 External blacklist self-exclusion removal in 0.4.10:
 
 - Stop reading RootHideConfig.plist and remove the fixed game exclusion from the shared app-hook policy. Once injected, all application bundles are eligible for hooks regardless of RootHide blacklist membership.
