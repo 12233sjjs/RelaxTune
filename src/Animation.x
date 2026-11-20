@@ -5,7 +5,7 @@
 #import "AnimationSettings.h"
 
 static __thread unsigned RTAnimationDepth;
-static __thread BOOL RTConvertingSpringAnimation;
+static __thread BOOL RTBypassingNestedDuration;
 static __thread BOOL RTUnlockTransition;
 static __thread BOOL RTWakeTransition;
 static __thread unsigned RTFolderAnimationDepth;
@@ -38,20 +38,6 @@ static NSTimeInterval RTDelay(NSTimeInterval delay, NSTimeInterval duration) {
         ? RTScaledDelay(delay, RTCurrentAcceleration()) : delay;
 }
 
-static UIViewAnimationOptions RTSmoothOptions(UIViewAnimationOptions options) {
-    if (RTAnimationDepth != 1 || !RTAnimationHooksActive()) return options;
-    UIViewAnimationOptions curveMask = UIViewAnimationOptionCurveEaseIn |
-                                       UIViewAnimationOptionCurveEaseOut |
-                                       UIViewAnimationOptionCurveLinear;
-    return (options & ~curveMask) | UIViewAnimationOptionCurveEaseOut |
-           UIViewAnimationOptionBeginFromCurrentState;
-}
-
-static BOOL RTAdjustPropertyAnimator(NSTimeInterval duration) {
-    return RTAnimationDepth == 1 && RTAnimationHooksActive() &&
-           duration >= 0.12 && duration <= 1.0;
-}
-
 static double RTNumberForKey(id object, NSString *key) {
     if (![object respondsToSelector:NSSelectorFromString(key)]) return 0.0;
     id value = [object valueForKey:key];
@@ -71,13 +57,20 @@ static void RTApply120FrameRate(id settings) {
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(settings, setReason, 1114123);
 }
 
-static id RTSmoothBSAnimationSettings(double duration, double delay, double speed) {
+static id RTObjectForKey(id object, NSString *key) {
+    if (!object || ![object respondsToSelector:NSSelectorFromString(key)]) return nil;
+    @try {
+        return [object valueForKey:key];
+    } @catch (__unused NSException *exception) {
+        return nil;
+    }
+}
+
+static id RTSmoothBSAnimationSettings(double duration, double delay, double speed, id timing) {
     static Class factoryClass;
-    static CAMediaTimingFunction *timing;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         factoryClass = NSClassFromString(@"BSAnimationSettings");
-        timing = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
     });
     id settings = RTCreateAnimationSettings(factoryClass, duration, delay, speed,
                                             RTCurrentAcceleration(), timing);
@@ -109,10 +102,9 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
                 completion:(void (^)(BOOL))completion {
     RTAnimationDepth++;
     @try {
-        NSTimeInterval value = RTConvertingSpringAnimation ? duration : RTDuration(duration);
-        NSTimeInterval wait = RTConvertingSpringAnimation ? delay : RTDelay(delay, duration);
-        UIViewAnimationOptions smoothed = RTSmoothOptions(options);
-        %orig(value, wait, smoothed, animations, completion);
+        NSTimeInterval value = RTBypassingNestedDuration ? duration : RTDuration(duration);
+        NSTimeInterval wait = RTBypassingNestedDuration ? delay : RTDelay(delay, duration);
+        %orig(value, wait, options, animations, completion);
     } @finally { RTAnimationDepth--; }
 }
 + (void)animateWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
@@ -124,13 +116,13 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
         return;
     }
     RTAnimationDepth++;
-    BOOL wasConverting = RTConvertingSpringAnimation;
+    BOOL wasBypassingNestedDuration = RTBypassingNestedDuration;
     @try {
-        RTConvertingSpringAnimation = YES;
-        [UIView animateWithDuration:RTDuration(duration) delay:RTDelay(delay, duration)
-                           options:RTSmoothOptions(options) animations:animations completion:completion];
+        RTBypassingNestedDuration = YES;
+        %orig(RTDuration(duration), RTDelay(delay, duration), damping, velocity,
+              options, animations, completion);
     } @finally {
-        RTConvertingSpringAnimation = wasConverting;
+        RTBypassingNestedDuration = wasBypassingNestedDuration;
         RTAnimationDepth--;
     }
 }
@@ -161,7 +153,8 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
     RTAnimationDepth++;
     @try {
         [self animateWithDuration:duration / RTAnimationSpeed(RTCurrentAcceleration()) delay:0
-            options:RTSmoothOptions(UIViewAnimationOptionAllowUserInteraction)
+            options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionCurveEaseOut |
+                    UIViewAnimationOptionBeginFromCurrentState
             animations:animations completion:completion];
     } @finally { RTAnimationDepth--; }
 }
@@ -174,15 +167,12 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
            animations:(void (^)(void))animations {
     RTAnimationDepth++;
     @try {
-        if (RTAdjustPropertyAnimator(duration)) curve = UIViewAnimationCurveEaseOut;
         return %orig(RTDuration(duration), curve, animations);
     } @finally { RTAnimationDepth--; }
 }
 - (id)initWithDuration:(NSTimeInterval)duration timingParameters:(id<UITimingCurveProvider>)timing {
     RTAnimationDepth++;
     @try {
-        if (RTAdjustPropertyAnimator(duration))
-            timing = [[UICubicTimingParameters alloc] initWithAnimationCurve:UIViewAnimationCurveEaseOut];
         return %orig(RTDuration(duration), timing);
     } @finally { RTAnimationDepth--; }
 }
@@ -190,18 +180,15 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
         controlPoint2:(CGPoint)p2 animations:(void (^)(void))animations {
     RTAnimationDepth++;
     @try {
-        if (RTAdjustPropertyAnimator(duration)) {
-            p1 = CGPointMake(0, 0);
-            p2 = CGPointMake(0.58, 1);
-        }
         return %orig(RTDuration(duration), p1, p2, animations);
     } @finally { RTAnimationDepth--; }
 }
 - (id)initWithDuration:(NSTimeInterval)duration dampingRatio:(CGFloat)damping
            animations:(void (^)(void))animations {
-    if (RTAnimationDepth == 0 && RTAnimationHooksActive() && duration >= 0.12 && duration <= 1.0)
-        return [self initWithDuration:duration curve:UIViewAnimationCurveEaseOut animations:animations];
-    return %orig(duration, damping, animations);
+    RTAnimationDepth++;
+    @try {
+        return %orig(RTDuration(duration), damping, animations);
+    } @finally { RTAnimationDepth--; }
 }
 + (id)runningPropertyAnimatorWithDuration:(NSTimeInterval)duration delay:(NSTimeInterval)delay
                                  options:(UIViewAnimationOptions)options
@@ -209,7 +196,7 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
                               completion:(void (^)(UIViewAnimatingPosition))completion {
     RTAnimationDepth++;
     @try {
-        return %orig(RTDuration(duration), RTDelay(delay, duration), RTSmoothOptions(options), animations, completion);
+        return %orig(RTDuration(duration), RTDelay(delay, duration), options, animations, completion);
     } @finally { RTAnimationDepth--; }
 }
 %end
@@ -238,7 +225,8 @@ static id RTSmoothBSAnimationSettings(double duration, double delay, double spee
                 duration = RTNumberForKey(original, @"duration");
                 speed = 1.0;
             }
-            id settings = RTSmoothBSAnimationSettings(duration, RTNumberForKey(self, @"delay"), speed);
+            id settings = RTSmoothBSAnimationSettings(duration, RTNumberForKey(self, @"delay"), speed,
+                                                      RTObjectForKey(original, @"timingFunction"));
             if (settings) return settings;
         }
     } @finally { RTUnlockTransition = previous; }

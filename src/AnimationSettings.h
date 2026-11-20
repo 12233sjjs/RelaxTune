@@ -13,11 +13,15 @@ static inline id RTCreateAnimationSettings(Class factoryClass, double duration, 
         strcmp([signature getArgumentTypeAtIndex:2], @encode(double)) != 0 ||
         strcmp([signature getArgumentTypeAtIndex:3], @encode(double)) != 0 ||
         [signature getArgumentTypeAtIndex:4][0] != '@' ||
-        !isfinite(duration) || duration <= 0.0 || duration > 2.0 ||
+        !isfinite(duration) || duration < 0.12 || duration > 1.0 ||
         !isfinite(delay) || delay < 0.0) return nil;
     // BSAnimationSettings is immutable; its speed setter is not available.
-    double scaledDuration = duration / RTSmoothPlaybackSpeed(speed, factor);
+    double baseSpeed = isfinite(speed) && speed > 0.0 ? speed : 1.0;
+    double accelerationSpeed = RTAnimationSpeed(factor);
+    double scaledDuration = duration / (baseSpeed * accelerationSpeed);
+    double scaledDelay = isfinite(delay) && delay >= 0.0
+        ? delay / accelerationSpeed : delay;
     return ((id (*)(id, SEL, double, double, id))objc_msgSend)(
-        factoryClass, factory, scaledDuration, RTScaledDelay(delay, factor), timing);
+        factoryClass, factory, scaledDuration, scaledDelay, timing);
 }
 #endif
