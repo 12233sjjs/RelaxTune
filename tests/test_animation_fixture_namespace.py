@@ -40,12 +40,15 @@ with tempfile.TemporaryDirectory(prefix="rt-animation-namespace-") as directory:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("")
 
-    def preprocess(path):
-        return subprocess.run([
+    def preprocess(path, isolated=True):
+        command = [
             compiler, "-E", "-P", "-x", "c", "-Wno-deprecated", "-I" + str(sdk),
             "-I" + str(ROOT / "tests/stubs"), "-I" + str(ROOT / "src"),
-            "-include", str(HEADER), str(path),
-        ], check=True, capture_output=True, text=True).stdout
+        ]
+        if isolated:
+            command += ["-include", str(HEADER)]
+        command.append(str(path))
+        return subprocess.run(command, check=True, capture_output=True, text=True).stdout
 
     expanded = preprocess(FIXTURE)
     actual = set(re.findall(r"@implementation\s+(\w+)", expanded))
@@ -71,10 +74,13 @@ with tempfile.TemporaryDirectory(prefix="rt-animation-namespace-") as directory:
                        else "RTAnimationFixtureObjCGetClass")
             for name in names:
                 assert re.search(wrapper + r'\(\s*@?"' + name + r'"\s*\)', expanded)
+        # Included production headers add selector calls; compare both fully
+        # preprocessed translation units, differing only in fixture isolation.
+        baseline = preprocess(path, isolated=False)
         selectors = lambda text: re.findall(r"@selector\(([^)]+)\)", text)
-        assert selectors(raw) == selectors(expanded), "Logos hook selectors changed"
+        assert selectors(baseline) == selectors(expanded), "Logos hook selectors changed"
         method_names = lambda text: re.findall(r'NSSelectorFromString\(\s*@"([^"]+)"', text)
-        assert method_names(raw) == method_names(expanded), "Runtime selectors changed"
+        assert method_names(baseline) == method_names(expanded), "Runtime selectors changed"
         assert '@selector(BSAnimationSettings)' in expanded
         assert '[RTAnimationFixture_UIView ' in expanded
         assert '[CASpringAnimation ' in expanded  # real QuartzCore, not a fake
