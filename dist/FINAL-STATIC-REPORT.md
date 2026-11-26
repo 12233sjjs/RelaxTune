@@ -14,7 +14,7 @@
 
 ## 2. 21 个原始归档条目的全部指定元数据
 
-原包 control 2 项 + data 19 项 = **21 项**，候选 23 项 = 原 21 项 + 新增 2 项。逐项比较 uid/gid/uname/gname/mode/mtime/type/linkname，全部相等，名称也原样保留，无删除或其他新增。原 21 项共同字段全部为 **uid=501、gid=20、uname=root、gname=wheel、linkname=空字符串**。不得把文本 root/wheel 误写成数值 0:0，也不得拿解包后本机 stat 所有权代替归档记录。其余三字段逐项如下；type 5=目录、0=普通文件，mtime 为原始 epoch 秒，表中即原包与最终包共同值。
+原包 control 2 项 + data 19 项 = **21 项**，候选 23 项 = 原 21 项 + 新增 2 项。逐项比较 uid/gid/uname/gname/mode/mtime/type/linkname，全部相等，解析后的条目路径保持一致，无删除或其他新增。另直接解析解压后 512 字节 tar 头并校验头校验和，独立复核八字段值仍为 21/21 相同。tar 头本身经过重编码（USTAR 路径前缀与 GNU 完整路径、目录末尾斜线及八进制数字填充形式有差异），本结论是字段值/条目语义保持，不宣称原始 tar 头逐字相同。原 21 项共同字段全部为 **uid=501、gid=20、uname=root、gname=wheel、linkname=空字符串**。不得把文本 root/wheel 误写成数值 0:0，也不得拿解包后本机 stat 所有权代替归档记录。其余三字段逐项如下；type 5=目录、0=普通文件，mtime 为原始 epoch 秒，表中即原包与最终包共同值。
 
 | 归档 | 原始条目名称 | mode | mtime | type |
 |---|---|---:|---:|---:|

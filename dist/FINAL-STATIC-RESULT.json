@@ -35,6 +35,9 @@
       "linkname"
     ],
     "all_original_metadata_equal": true,
+    "raw_512_byte_tar_header_semantic_crosscheck_entries": 21,
+    "raw_tar_header_bytes_identical": false,
+    "tar_header_reencoding_note": "Metadata values and parsed paths preserved; USTAR/GNU path encoding, directory trailing slash and octal zero padding differ, not raw tar header byte preservation.",
     "original_common_fields": {
       "uid": 501,
       "gid": 20,
