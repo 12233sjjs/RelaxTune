@@ -22,6 +22,7 @@ jobs:
         run: |
           python3 tests/test_preferences.py
           python3 tests/test_promotion_adapter.py
+          python3 tests/test_animation_fixture_namespace.py
           python3 - <<'PY'
           import pathlib, plistlib
           for path in pathlib.Path(".").rglob("*.plist"):
@@ -62,8 +63,7 @@ jobs:
           brew list ldid >/dev/null 2>&1 || brew install ldid
           brew list dpkg >/dev/null 2>&1 || brew install dpkg
           git clone https://github.com/roothide/theos.git "$THEOS"
-          git -C "$THEOS" checkout cfba89a53a05b4a1b822121158acc3669c20602f ||
-            git -C "$THEOS" checkout HEAD
+          git -C "$THEOS" checkout --detach 958fea4f779943505b15b93c88bb4db8d97b346d
           git -C "$THEOS" submodule update --init --recursive
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           mkdir -p "$THEOS/sdks"
@@ -76,7 +76,9 @@ jobs:
       - name: Test animation hooks against Objective-C fixtures
         run: |
           perl "$THEOS/bin/logos.pl" -c generator=internal src/Animation.x > work/Animation-test.m
+          python3 tests/test_animation_fixture_namespace.py work/Animation-test.m
           clang -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function -fobjc-arc \
+            -include tests/animation_fixture_namespace.h \
             -framework Foundation -framework QuartzCore -Itests/stubs -Isrc \
             work/Animation-test.m tests/test_animation_hooks.m src/Settings.m -o work/test_animation_hooks
           ./work/test_animation_hooks
@@ -107,7 +109,10 @@ jobs:
           {
             echo "Commit: $GITHUB_SHA"
             echo "Scheme: ${{ matrix.scheme }}"
-            echo "Theos: cfba89a53a05b4a1b822121158acc3669c20602f"
+            echo "Theos: $(git -C "$THEOS" rev-parse HEAD)"
+            echo "Theos submodules:"
+            git -C "$THEOS" submodule status --recursive
+            echo "Package origin: Theos source rebuild; distinct from the audited prebuilt dist/ DEB"
             xcodebuild -version
             echo "Core tests: passed in test job"
             echo "Device validation: NOT PERFORMED"

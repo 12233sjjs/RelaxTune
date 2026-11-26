@@ -36,7 +36,7 @@ d9d430c5327ecdffa8e1c821e479a76571ff4cfba9ff686f9f09b9789839b375
 
 四个原有文件内容变化：`RelaxTune.dylib`、其主 Filter、设置面板 `Root.plist` 和 `DEBIAN/control`；新增原样 `RelaxTuneProMotion120.dylib` 及手动加载专用 Filter。其他七个原文件字节和原文件模式不变。
 
-保留全部 21 个原 control/data tar 条目的数值 uid/gid、uname/gname、mode、mtime、type 和 linkname；新增两个条目沿用供体元数据。原包有“数值 501:20、文本 root/wheel”的元数据，不能仅以 `dpkg-deb --contents` 的名字显示断言其数值所有权。直接保留原 tar/ar header，避免虚拟文件系统 `chown` 不生效或 `--root-owner-group` 静默归零。沿用原 control gzip / data LZMA 编码。
+保留全部 21 个原 control/data tar 条目的数值 uid/gid、uname/gname、mode、mtime、type 和 linkname；新增两个条目沿用供体元数据。原包有“数值 501:20、文本 root/wheel”的元数据，不能仅以 `dpkg-deb --contents` 的名字显示断言其数值所有权。这些字段及路径语义得到保留，但不声称原始 tar header 逐字不变：USTAR/GNU 路径表示、目录尾斜线和八进制填充会被重新编码。避免依赖虚拟文件系统 `chown` 或 `--root-owner-group` 静默归零；沿用原 control gzip / data LZMA 编码。完整边界见 `dist/FINAL-STATIC-REPORT.md`。
 
 ## 本地复现与检查
 

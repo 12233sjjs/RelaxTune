@@ -3,6 +3,9 @@
 #import "Settings.h"
 #import "AnimationSettings.h"
 #include <assert.h>
+#ifndef RT_ANIMATION_FIXTURE_NAMESPACE_H
+#error "Force-include tests/animation_fixture_namespace.h for both test translation units"
+#endif
 
 static BOOL reducedMotion;
 static NSMutableArray<NSNumber *> *durations;
@@ -97,11 +100,11 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
     return settings;
 }
 @end
-// Production discovers this exact runtime name. The inherited immutable factory
-// allocates self, distinguishing converted results from native RTTest settings.
-@interface BSAnimationSettings : RTTestAnimationSettings
+// Test-only class name: the unprefixed name may already exist in BaseBoard.
+// Keep the BSAnimationSettings export selector unchanged below.
+@interface RTAnimationFixture_BSAnimationSettings : RTTestAnimationSettings
 @end
-@implementation BSAnimationSettings
+@implementation RTAnimationFixture_BSAnimationSettings
 @end
 
 @interface SBFAnimationSettings : NSObject
@@ -253,6 +256,17 @@ static void folderFixtureAnimation(void) {
 }
 @end
 
+static void testFixtureClasses(void) {
+    // Verify raw prefixed runtime names as well as every redirected lookup.
+    // Token pasting/stringification intentionally bypass the type-name aliases.
+#define RT_ASSERT_FIXTURE_CLASS(cls) \
+    assert(NSClassFromString(@"RTAnimationFixture_" @#cls) == RTAnimationFixture_ ## cls.class); \
+    assert(NSClassFromString(@#cls) == RTAnimationFixture_ ## cls.class); \
+    assert(objc_getClass(#cls) == RTAnimationFixture_ ## cls.class);
+    RT_ANIMATION_FIXTURE_CLASSES(RT_ASSERT_FIXTURE_CLASS)
+#undef RT_ASSERT_FIXTURE_CLASS
+}
+
 static void near(double actual, double expected) { assert(fabs(actual - expected) < 1e-9); }
 // 0.5 changes eligible timing only: caller options, curves and public spring
 // parameters must survive; do not restore the old forced ease-out conversion.
@@ -320,15 +334,15 @@ static void testSpringBoard(void) {
     // synthesize a fixed curve; a missing timing function must remain nil.
     id timing = [NSObject new];
     source.timingFunction = timing;
-    assert(NSClassFromString(@"BSAnimationSettings") == BSAnimationSettings.class);
+    assert(NSClassFromString(@"BSAnimationSettings") == RTAnimationFixture_BSAnimationSettings.class);
     id result = [source BSAnimationSettings];
     assert(![result respondsToSelector:NSSelectorFromString(@"setSpeed:")]);
     near([result duration], 0.3 / 1.9); near([result delay], 0.15 / 1.9); near(source.duration, 0.3);
     assert([result timingFunction] == timing);
-    assert([result isMemberOfClass:BSAnimationSettings.class]);
+    assert([result isMemberOfClass:RTAnimationFixture_BSAnimationSettings.class]);
     source.timingFunction = nil;
     result = [source BSAnimationSettings];
-    assert([result isMemberOfClass:BSAnimationSettings.class]);
+    assert([result isMemberOfClass:RTAnimationFixture_BSAnimationSettings.class]);
     assert([result timingFunction] == nil);
     near([result duration], 0.3 / 1.9); near([result delay], 0.15 / 1.9);
     source.speed = 2;
@@ -337,8 +351,8 @@ static void testSpringBoard(void) {
     near([[source BSAnimationSettings] duration], 0.3 / 5.6);
     atomic_store(&RTAnimationFactor, 1);
     assert(!RTCreateAnimationSettings(Nil, 0.3, 0, 1, 1, nil));
-    assert(!RTCreateAnimationSettings(BSAnimationSettings.class, NAN, 0, 1, 1, nil));
-    RTTestAnimationSettings *fixture = RTCreateAnimationSettings(BSAnimationSettings.class, 0.3, 0, 1, 1, nil);
+    assert(!RTCreateAnimationSettings(RTAnimationFixture_BSAnimationSettings.class, NAN, 0, 1, 1, nil));
+    RTTestAnimationSettings *fixture = RTCreateAnimationSettings(RTAnimationFixture_BSAnimationSettings.class, 0.3, 0, 1, 1, nil);
     near(fixture.duration, 0.3 / 1.9); assert(fixture.timingFunction == nil);
     source.duration = 3;
     near([[source BSAnimationSettings] duration], 3);
@@ -538,6 +552,7 @@ int main(int argc, const char *argv[]) {
         durations = [NSMutableArray array];
         atomic_store(&RTHighRefresh, false);
         atomic_store(&RTAnimationFactor, 1);
+        testFixtureClasses();
         RTInstallAnimationHooks(YES);
         testUIKit(); testPropertyAnimator(); testSpringBoard();
         testAccelerationDirection(); testPhaseTiming(); testFolderAnimations(); testLockAnimations();
