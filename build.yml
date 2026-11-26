@@ -1,3 +1,5 @@
+# Historical reference only; not the active workflow. Do not use for 0.5.1.
+# Current RootHide-only workflow: .github/workflows/build.yml.
 name: Build and package
 
 on:

@@ -38,7 +38,10 @@ else:
     root_file = root / "prefs/Resources/Root.plist"
     filter_file = root / "RelaxTune.plist"
 
-assert set(read(filter_file)["Filter"]["Bundles"]) == {"com.apple.UIKit", "com.apple.springboard"}
+assert set(read(filter_file)["Filter"]["Bundles"]) == {
+    "com.apple.UIKit", "com.apple.springboard", "com.apple.UserNotificationsUIServer",
+    "com.apple.springboard.SpringBoardOutofCallUI"
+}
 
 entry = read(entry_file)["entry"]
 info = read(info_file)
@@ -71,7 +74,9 @@ if len(sys.argv) == 1:
     assert "RTAnimationExclusionController" not in controller_source
     assert "_factorStepper.stepValue = 0.1;" in controller_source
     tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
-    assert "UIViewAnimationOptions smoothed = RTSmoothOptions(options);" in tweak_source
+    # The existing 0.5 implementation preserves the caller's curve/options.
+    assert "RTSmoothOptions" not in tweak_source
+    assert "%orig(value, wait, options, animations, completion);" in tweak_source
     lifecycle_source = (root / "src/Tweak.x").read_text(encoding="utf-8")
     # Every packaged app entry uses bundle eligibility, never external blacklists.
     settings_source = (root / "src/Settings.m").read_text(encoding="utf-8")

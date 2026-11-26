@@ -1,9 +1,10 @@
 Package: com.12233sjjs.relaxtune
 Name: cc优化系统
-Version: 0.5
+Version: 0.5.1
 Architecture: iphoneos-arm64
-Description: Independent animation controls, connection waiting and optional TCP_NODELAY for Relaxin.
+Description: Independent animation controls, connection waiting and optional TCP_NODELAY for Relaxin; ProMotion120 1.0.14-1 refresh-policy integration.
 Maintainer: 12233sjjs
 Author: 12233sjjs
 Section: Tweaks
 Depends: firmware (>= 16.0), firmware (<< 17.0), mobilesubstrate, preferenceloader
+Conflicts: com.doimty.promotion, cn.zqbb.fix120hz, cn.zqbb.fix120hz15, com.zqbb.fix120hz, com.zqbb.dynamic120hz

@@ -1,0 +1,34 @@
+// Assembled as raw AArch64 code, then the three marked external branches are
+// resolved by patch_refresh.py. Existing ctor frames/pool epilogues are kept.
+.arch armv8.3-a
+.text
+.global _start
+.org BODY_VA
+_start:
+    bl .                          // 0: RTLoadSettings
+    adrp x8, 0x10000
+    add x8, x8, #0x494            // atomic_bool RTEnabled
+    ldarb w9, [x8]
+    cbz w9, .Ldone
+    add x8, x8, #3                // atomic_bool RTHighRefresh
+    ldarb w9, [x8]
+    cbz w9, .Ldone
+    mov x0, #-2                  // Darwin RTLD_DEFAULT
+    adr x1, .Lsymbol
+    bl .                          // 1: existing imported dlsym stub
+    cbz x0, .Ldone
+    mov x16, x0
+    adr x0, .Lpath
+    mov w1, #6                   // RTLD_NOW | RTLD_LOCAL
+.if AUTH_CALL
+    blraaz x16                   // dlsym returns signed arm64e function ptr
+.else
+    blr x16
+.endif
+.Ldone:
+    b .                           // 2: original ctor's pool-pop epilogue
+.Lsymbol:
+    .asciz "dlopen"
+.Lpath:
+    .asciz "@loader_path/RelaxTuneProMotion120.dylib"
+.balign 4

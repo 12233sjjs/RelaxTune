@@ -1,0 +1,38 @@
+{
+  "status": "both_original_debs_and_main_dylibs_exact_sha256_match",
+  "packages": [
+    {
+      "path": "/var/minis/shared/relaxtune/recovered-originals/artifact-14632191058/com.12233sjjs.relaxtune_0.5_iphoneos-arm64e.deb",
+      "size": 33228,
+      "sha256": "d5130ca773d45b45ca48e61781b88365a0492b93eec3ce84519d389c348b8403",
+      "source": "https://api.github.com/repos/12233sjjs/RelaxTune/actions/artifacts/14632191058/zip",
+      "exact_match": "RelaxTune",
+      "unpack_exit": 0,
+      "control": "Package: com.12233sjjs.relaxtune\nName: cc优化系统\nDescription: Independent animation controls, connection waiting and optional TCP_NODELAY for Relaxin.\nMaintainer: 12233sjjs\nAuthor: 12233sjjs\nSection: Tweaks\nDepends: firmware (>= 16.0), firmware (<< 17.0), mobilesubstrate, preferenceloader\nArchitecture: iphoneos-arm64e\nVersion: 0.5\nInstalled-Size: 404\n",
+      "dylibs": [
+        {
+          "path": "/var/minis/shared/relaxtune/recovered-originals/artifact-14632191058/com.12233sjjs.relaxtune_0.5_iphoneos-arm64e.deb.unpacked/Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib",
+          "sha256": "9d3973e658fdd5edc1c1174de499842acfe7c6b25d9d9ee1ff0049c1d1e6329f",
+          "size": 206784
+        }
+      ],
+      "canonical_path": "/var/minis/shared/relaxtune/recovered-originals/com.12233sjjs.relaxtune_0.5_iphoneos-arm64e.deb"
+    },
+    {
+      "path": "/var/minis/shared/relaxtune/recovered-originals/ProMotion 120Hz-1.0.14-1-iphoneos-arm64e.deb",
+      "size": 19460,
+      "sha256": "b96bfa462178b034897400cec04cdbd334a27453f8582f6738de0dc6e7c741ff",
+      "source": "https://api.github.com/repos/doimty/doimty.github.io/contents/debs/com.doimty.promotion_1.0.14-1_iphoneos-arm64e.deb",
+      "exact_match": "ProMotion",
+      "unpack_exit": 0,
+      "control": "Package: com.doimty.promotion\nName: ProMotion 120Hz\nAuthor: doimty\nDescription: High-refresh policy tweak for supported iPhone Pro models, with app and system refresh requests and a persistent SpringBoard keepalive.\nDepends: firmware (>= 15.0), mobilesubstrate\nConflicts: cn.zqbb.fix120hz, cn.zqbb.fix120hz15, com.zqbb.fix120hz, com.zqbb.dynamic120hz\nMaintainer: doimty\nSection: Tweaks\nArchitecture: iphoneos-arm64e\nVersion: 1.0.14-1\nInstalled-Size: 108\nTag: supports::roothide\n",
+      "dylibs": [
+        {
+          "path": "/var/minis/shared/relaxtune/recovered-originals/ProMotion 120Hz-1.0.14-1-iphoneos-arm64e.deb.unpacked/Library/MobileSubstrate/DynamicLibraries/ProMotion120.dylib",
+          "sha256": "ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb",
+          "size": 106272
+        }
+      ]
+    }
+  ]
+}

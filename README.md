@@ -1,8 +1,19 @@
 # cc优化系统
 
 为 iPhone 13 Pro / iOS 16.6.1 / Relaxin v0.5.6 制作的实验性插件。
-提供标准 rootless 和 RootHide 两种包。Relaxin 上游明确采用 RootHide 架构，
-不要把标准 rootless 包等同于 Relaxin 可直接使用的包。
+提供历史标准 rootless 和 RootHide 构建。**当前 0.5.1 ProMotion 集成分支仅提供 RootHide / iphoneos-arm64e 包**，
+因为用户提供的 ProMotion120 模块是 arm64e RootHide 二进制；不把它冒充标准 rootless 模块。
+
+## 0.5.1：120Hz 更换为 ProMotion120 1.0.14-1
+
+- 彻底停用旧 SpringBoard CADisplayLink 和动画帧率写入路径；原模块其他二进制代码保持不变。
+- 原样集成用户提供的 ProMotion120 模块，保留其显示能力检测、系统刷新策略、App 请求、动态源、通知/悬浮恢复及 SpringBoard 持久 keepalive。
+- 保留 `Enabled`、`HighRefresh` 键和默认值，启动时两者都开启才加载高刷模块。**更改这两个开关后须重载 SpringBoard 并重开目标 App**，不支持在已运行的进程内热卸载 hook。
+- 动画加速、唤醒/解锁、网络、TCP_NODELAY、僵尸清理和手动内核脚本沿用包一；系统温控/低电量模式状态不由本适配器写入。
+- 按 2026-11-26 最新要求，主注入 Filter 合并 ProMotion 的进程范围，其他现有功能也可在新增目标中生效；仍受原进程守卫、总开关、单项开关及动画屏蔽名单各自约束，不强制开启，不承诺所有功能覆盖所有新增进程。音效仍不打包，内核脚本仍须手动运行。
+- ProMotion 原逻辑会改变部分刷新限制策略，且有持续 keepalive，可能增加耗电与发热；并非保持包一旧“低电量时撤销120Hz请求”策略。
+- 见 [详细构建和审计说明](docs/PROMOTION120-INTEGRATION.md)。提供的 DEB 是对指定两份输入包的最小二进制适配；源码为下一次 Theos 重建提供等价加载适配器，不声称字节级可重现编译。
+- 尚未在越狱真机安装/运行，也未测量面板 Hz、游戏 FPS、功耗或温控。
 
 ## 功能
 
@@ -31,7 +42,7 @@ SpringBoard 私有动画仅转换原始时长在 0.12-1.0 秒内的阶段，更�
 主动画、锁屏唤醒、锁屏解锁分别设置 `0.0–10.0` 的加速等级，步长 `0.1`。
 `0` 保持原速度，数值越大越快，`10` 对应最高 `10×` 播放速度；实际速度系数为 `1 + 0.9 × 等级`。
 取消原先额外的 `0.8` 时长系数，UIKit 和 SpringBoard 共用同一方向的换算。
-主动画保留平滑的非弹簧收尾；唤醒和解锁各有独立开关，默认关闭、等级默认 `0`。
+主动画保留调用方曲线与 spring 参数；唤醒和解锁各有独立开关，默认关闭、等级默认 `0`。
 新等级不读取旧版“动画时长比例”，升级后需重新设置。锁屏切换不会写入这些设置。
 锁屏解锁加速只调整认证后的动画、壁纸及松手后的完成转场，不缩短 Face ID 或密码校验。
 私有接口会先检查运行时签名，不匹配则保持系统行为。没有 iOS 16.6.1 实机结果。
@@ -57,7 +68,7 @@ SpringBoard 私有动画仅转换原始时长在 0.12-1.0 秒内的阶段，更�
 | 动画加速等级 | 0.0–10.0，步长 0.1；0 为原速，10 最快 | 0 |
 | 锁屏唤醒加速 | 独立加速按键/轻点/抬起唤醒动画，等级 0.0–10.0 | 关，等级 0 |
 | 锁屏解锁加速 | 独立加速解锁壁纸与完成转场，等级 0.0–10.0 | 关，等级 0 |
-| 系统动画120Hz优先 | 在支持 120 Hz 的设备上，为 SpringBoard 显示链接请求 120 Hz | 开 |
+| ProMotion 120Hz（重启生效） | 启动时按总开关和此开关加载原版 ProMotion120 1.0.14-1，覆盖其 App/系统刷新策略 | 开 |
 | 等待网络恢复 | 新建的默认/临时 URLSession 配置启用 waitsForConnectivity | 开 |
 
 UIKit 动画仅调整原始时长 0.12–1.0 秒的上述动画及其配套启动延迟，不改变长时间进度动画或所有属性动画。
@@ -65,10 +76,10 @@ UIKit 动画仅调整原始时长 0.12–1.0 秒的上述动画及其配套启�
 主动画等级 0 保留原时长和系统曲线；锁屏两项等级 0 或关闭时保持其原始动画。
 系统开启“减弱动态效果”时不加速动画。更改倍率后，部分 SpringBoard 设置可能需重新载入界面或重新 SpringBoard 才生效。
 
-120 Hz 选项仅作用于 SpringBoard 的 CADisplayLink 请求，不改变游戏的渲染循环或解锁游戏帧率档位。
-关闭该选项或系统低电量模式开启时恢复调用方原始请求；它与三个动画加速等级独立。
-按用户要求，插件不再根据严重发热状态主动撤销 120 Hz 请求，也不监听热状态通知。
-系统仍可按温度、功耗和显示策略降低实际刷新率，不能保证始终输出 120 FPS。
+120 Hz 选项在启动时加载 ProMotion120 模块，包含 CADisplayLink、CAAnimation、系统刷新策略和 SpringBoard keepalive，
+不只是旧版 SpringBoard CADisplayLink 请求。更改此项或总开关后，必须重载 SpringBoard 并重开 App 才能完整加载/关闭高刷模块。
+该适配器不写入系统低电量模式；模块内部保留原包的刷新策略，不能再承诺旧版“低电量时恢复调用方请求”行为。
+系统仍可按温度、功耗和显示策略降低实际刷新率，不能保证始终输出 120 Hz，更不保证游戏 120 FPS。
 本项目不包含 CPU/GPU 锁频，不把 3240/1380 MHz 的工具读数当成可写频率档位。
 
 网络模块不修改 TCP、DNS、基带、Wi-Fi 驱动或发射功率，不提高信号，不承诺降低延迟。
@@ -124,8 +135,8 @@ AVPlayer、AudioQueue、音频单元图连接、系统音效、DRM/卸载渲染�
 
 从本仓库 Releases 下载，不要同时安装两个格式。
 
-- 标准 rootless：文件名含 `iphoneos-arm64`，安装路径为 `/var/jb`。
-- Relaxin / RootHide：文件名含 `iphoneos-arm64e`，按包管理器支持情况安装。
+- 本 0.5.1 分支仅交付 Relaxin / RootHide：文件名含 `iphoneos-arm64e`，按包管理器支持情况安装。
+- 旧版本的标准 rootless 包不代表此集成版也支持；当前导入模块只有 arm64e RootHide 格式。
   这里的包架构名称不能用来判断手机 CPU 架构。
 - 依赖 PreferenceLoader 和兼容的插件注入环境。
 - 安装后重新载入 SpringBoard，在“设置 → cc优化系统”调整。
@@ -139,13 +150,11 @@ AVPlayer、AudioQueue、音频单元图连接、系统音效、DRM/卸载渲染�
 
 依赖 Xcode iPhoneOS SDK、RootHide Theos、ldid、dpkg。
 CI 固定 Theos 及其子模块版本，并从 Theos iOS 16.5 SDK 下载经 SHA-256 核对的 Preferences 链接描述，
-构建 arm64 / arm64e 通用二进制，两种格式分别打包。手动构建需使用包含 Preferences 的 SDK，
+构建 arm64 / arm64e 主二进制；本集成分支仅打包 RootHide 格式，附带原样 arm64e 高刷模块。手动构建需使用包含 Preferences 的 SDK，
 或与 CI 一样将该链接描述放入 `work/frameworks/Preferences.framework/Preferences.tbd`。
 
 ```sh
 export THEOS=/path/to/roothide/theos
-make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-make clean
 make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
 ```
 
@@ -155,7 +164,7 @@ GitHub Actions 自动检查动画倍率边界、滤波响应/声道独立/非有
 
 ## 实机验收
 
-1. 确认两个格式分别由对应环境加载，设置面板、总开关和单项开关有效。
+1. 确认本 RootHide 包在对应注入环境加载，设置面板、总开关和单项开关有效；高刷或总开关变更后重载 SpringBoard 并重开 App。
 2. 检查 0、0.1、0.5、2、10 级动画，开合 App/文件夹/应用内导航；三个等级分别修改并验证互不影响。
    文件夹开合在各等级应保持原速；对比有阶段延迟的 App 转场，观察是否仍有明显停顿。
    分别验证按键/轻点/抬起唤醒、解锁手势中途取消及完成、关闭开关、减弱动态效果、连续锁屏解锁。

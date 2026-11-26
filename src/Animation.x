@@ -45,16 +45,9 @@ static double RTNumberForKey(id object, NSString *key) {
 }
 
 static void RTApply120FrameRate(id settings) {
-    if (!settings || !atomic_load(&RTHighRefresh) ||
-        UIScreen.mainScreen.maximumFramesPerSecond < 120) return;
-    SEL setRange = NSSelectorFromString(@"setPreferredFrameRateRange:");
-    if ([settings respondsToSelector:setRange]) {
-        CAFrameRateRange range = CAFrameRateRangeMake(120, 120, 120);
-        ((void (*)(id, SEL, CAFrameRateRange))objc_msgSend)(settings, setRange, range);
-    }
-    SEL setReason = NSSelectorFromString(@"setHighFrameRateReason:");
-    if ([settings respondsToSelector:setReason])
-        ((void (*)(id, SEL, unsigned int))objc_msgSend)(settings, setReason, 1114123);
+    // Retained as a no-op so the timing paths are otherwise unchanged.
+    // Only the imported ProMotion120 module now owns frame-rate policy.
+    (void)settings;
 }
 
 static id RTObjectForKey(id object, NSString *key) {

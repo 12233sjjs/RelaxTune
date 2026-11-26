@@ -2,7 +2,7 @@ name: Build and package
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/relaxtune-0.5.1-promotion120-20261126]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +21,7 @@ jobs:
       - name: Validate property lists and settings
         run: |
           python3 tests/test_preferences.py
+          python3 tests/test_promotion_adapter.py
           python3 - <<'PY'
           import pathlib, plistlib
           for path in pathlib.Path(".").rglob("*.plist"):
@@ -43,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scheme: [rootless, roothide]
+        scheme: [roothide]
     env:
       THEOS: ${{ github.workspace }}/work/theos
     steps:
@@ -88,6 +89,7 @@ jobs:
           mkdir -p work/extracted
           dpkg-deb -x packages/*.deb work/extracted
           python3 tests/test_preferences.py work/extracted
+          python3 tests/test_promotion_adapter.py work/extracted
           path="$(find work/extracted -name RelaxTune.dylib -print -quit)"
           test -n "$path"
           file "$path"

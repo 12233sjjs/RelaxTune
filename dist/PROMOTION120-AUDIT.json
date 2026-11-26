@@ -1,0 +1,339 @@
+{
+  "archive_metadata": {
+    "original_metadata_preserved": true,
+    "entries_checked_including_additions": 23,
+    "method": "original tar/ar metadata retained; file bytes from staging; no filesystem chown assumption"
+  },
+  "scope_policy": "main filter union deliberately applies to existing non-refresh features too; existing guards, switches and exclusions retained",
+  "package1_sha256": "d5130ca773d45b45ca48e61781b88365a0492b93eec3ce84519d389c348b8403",
+  "package2_sha256": "b96bfa462178b034897400cec04cdbd334a27453f8582f6738de0dc6e7c741ff",
+  "version": "0.5.1",
+  "artifact": "com.12233sjjs.relaxtune_0.5.1_iphoneos-arm64e.deb",
+  "artifact_bytes": 50070,
+  "artifact_sha256": "d9d430c5327ecdffa8e1c821e479a76571ff4cfba9ff686f9f09b9789839b375",
+  "original_provider_sha256": "ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb",
+  "patched_library_sha256": "de564b1f7b19e964647aa9565ba2d1c0de91881ef1a7f05b4f7f0189844a5b2f",
+  "patches": [
+    {
+      "arch": "arm64",
+      "reason": "disable_old_helper",
+      "va": 28424,
+      "size": 4
+    },
+    {
+      "arch": "arm64",
+      "reason": "disable_old_callback",
+      "va": 29408,
+      "size": 4
+    },
+    {
+      "arch": "arm64",
+      "reason": "conditional_original_promotion_loader",
+      "va": 30236,
+      "size": 116,
+      "hex": "7d010094480000b00851129109fddf0889010034080d009109fddf08290100342000809201010010ee020094a00000b4f00300aaa0000070c100805200023fd648000014646c6f70656e00406c6f616465725f706174682f52656c617854756e6550726f4d6f74696f6e3132302e64796c696200"
+    },
+    {
+      "arch": "arm64e",
+      "reason": "disable_old_helper",
+      "va": 29372,
+      "size": 4
+    },
+    {
+      "arch": "arm64e",
+      "reason": "disable_old_callback",
+      "va": 30444,
+      "size": 4
+    },
+    {
+      "arch": "arm64e",
+      "reason": "conditional_original_promotion_loader",
+      "va": 31320,
+      "size": 116,
+      "hex": "ad010094480000b00851129109fddf0889010034080d009109fddf082901003420008092010100103e030094a00000b4f00300aaa0000070c10080521f0a3fd650000014646c6f70656e00406c6f616465725f706174682f52656c617854756e6550726f4d6f74696f6e3132302e64796c696200"
+    }
+  ],
+  "code_hash_slots_updated": [
+    {
+      "base": 16384,
+      "directory": 0,
+      "page": 6,
+      "pos": 107038,
+      "size": 20
+    },
+    {
+      "base": 16384,
+      "directory": 0,
+      "page": 7,
+      "pos": 107058,
+      "size": 20
+    },
+    {
+      "base": 16384,
+      "directory": 4096,
+      "page": 6,
+      "pos": 107908,
+      "size": 32
+    },
+    {
+      "base": 16384,
+      "directory": 4096,
+      "page": 7,
+      "pos": 107940,
+      "size": 32
+    },
+    {
+      "base": 114688,
+      "directory": 0,
+      "page": 7,
+      "pos": 205362,
+      "size": 20
+    },
+    {
+      "base": 114688,
+      "directory": 4096,
+      "page": 7,
+      "pos": 206244,
+      "size": 32
+    }
+  ],
+  "patched_signature": {
+    "code_pages": 92,
+    "embedded_special_slots": 4,
+    "directories": [
+      {
+        "base": 16384,
+        "sub": 0,
+        "off": 106756,
+        "length": 622,
+        "type": 0,
+        "flags": 0,
+        "hashoff": 162,
+        "hs": 20,
+        "ht": 1,
+        "ps": 12,
+        "limit": 90336,
+        "ncode": 23,
+        "nsp": 2
+      },
+      {
+        "base": 16384,
+        "sub": 0,
+        "off": 107530,
+        "length": 922,
+        "type": 4096,
+        "flags": 0,
+        "hashoff": 186,
+        "hs": 32,
+        "ht": 2,
+        "ps": 12,
+        "limit": 90336,
+        "ncode": 23,
+        "nsp": 2
+      },
+      {
+        "base": 114688,
+        "sub": 2147483650,
+        "off": 205060,
+        "length": 622,
+        "type": 0,
+        "flags": 0,
+        "hashoff": 162,
+        "hs": 20,
+        "ht": 1,
+        "ps": 12,
+        "limit": 90336,
+        "ncode": 23,
+        "nsp": 2
+      },
+      {
+        "base": 114688,
+        "sub": 2147483650,
+        "off": 205834,
+        "length": 922,
+        "type": 4096,
+        "flags": 0,
+        "hashoff": 186,
+        "hs": 32,
+        "ht": 2,
+        "ps": 12,
+        "limit": 90336,
+        "ncode": 23,
+        "nsp": 2
+      }
+    ]
+  },
+  "provider_signature": {
+    "code_pages": 52,
+    "embedded_special_slots": 2,
+    "directories": [
+      {
+        "base": 0,
+        "sub": 2147483650,
+        "off": 104388,
+        "length": 685,
+        "type": 0,
+        "flags": 0,
+        "hashoff": 165,
+        "hs": 20,
+        "ht": 1,
+        "ps": 12,
+        "limit": 104352,
+        "ncode": 26,
+        "nsp": 2
+      },
+      {
+        "base": 0,
+        "sub": 2147483650,
+        "off": 105225,
+        "length": 1021,
+        "type": 4096,
+        "flags": 0,
+        "hashoff": 189,
+        "hs": 32,
+        "ht": 2,
+        "ps": 12,
+        "limit": 104352,
+        "ncode": 26,
+        "nsp": 2
+      }
+    ]
+  },
+  "changed_original_files": [
+    "DEBIAN/control",
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib",
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.plist",
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/Root.plist"
+  ],
+  "added_files": [
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.dylib",
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.plist"
+  ],
+  "original_manifest": {
+    "DEBIAN/control": {
+      "sha256": "8acb533c3d058fdfce6cfde7ae6d6e2a6330a44112f44fc5ac4347086b4d65fc",
+      "mode": "0o644",
+      "bytes": 358
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib": {
+      "sha256": "9d3973e658fdd5edc1c1174de499842acfe7c6b25d9d9ee1ff0049c1d1e6329f",
+      "mode": "0o755",
+      "bytes": 206784
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.plist": {
+      "sha256": "45a2e0920c0ee087d47fdf640b03ffdae82050b4123c41e9521f1d6b2a16963f",
+      "mode": "0o644",
+      "bytes": 113
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/Info.plist": {
+      "sha256": "0b418065baba04e8c9f75350adb4ebd91772e5d5bf549b771d983f055efcb5e5",
+      "mode": "0o644",
+      "bytes": 276
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/RelaxTunePrefs": {
+      "sha256": "8520cd0e89a7657f25e5cff6b3a53b77e0412df3183e312e1c08829c84d725d1",
+      "mode": "0o755",
+      "bytes": 169792
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/Root.plist": {
+      "sha256": "36250823778f5a806c12a770c7c1fa78565568e90c57e1b0829819d93360ba34",
+      "mode": "0o644",
+      "bytes": 901
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon.png": {
+      "sha256": "7cd0d67098887d63f29749371e691bb4055d2ebd550fd260c8f68104f50804d2",
+      "mode": "0o644",
+      "bytes": 648
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@2x.png": {
+      "sha256": "70b3aa60a1279c1ec60fb4a3744370dac31640011805ce4e0bc8ee8831c20255",
+      "mode": "0o644",
+      "bytes": 1311
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@3x.png": {
+      "sha256": "fdc5e5a4809bcbc8dee1d07624e1f7da2ee8eb67312230b9828338c3ca0dae51",
+      "mode": "0o644",
+      "bytes": 1994
+    },
+    "Library/PreferenceLoader/Preferences/RelaxTune.plist": {
+      "sha256": "cec708f83e19276990743727d96ff5a6530033a11d3ce0c7a0ed0357e54cf069",
+      "mode": "0o644",
+      "bytes": 188
+    },
+    "Library/ccSystem/system_tweaks.sh": {
+      "sha256": "855a2a956ffc68d434f50f25c9299e840eeda478a37dc1960fef49b6438c60b7",
+      "mode": "0o644",
+      "bytes": 3796
+    }
+  },
+  "final_manifest": {
+    "DEBIAN/control": {
+      "sha256": "9f1ce20fb9e89e2001ceb82f9ea0ad793b1c9047982a7cba0a445a788ad43202",
+      "mode": "0o644",
+      "bytes": 496
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib": {
+      "sha256": "de564b1f7b19e964647aa9565ba2d1c0de91881ef1a7f05b4f7f0189844a5b2f",
+      "mode": "0o755",
+      "bytes": 206784
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTune.plist": {
+      "sha256": "d2d7225973e568b4a6aac472d6b87cc2f04c481946ae11d087a3fa70056533f2",
+      "mode": "0o644",
+      "bytes": 465
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.dylib": {
+      "sha256": "ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb",
+      "mode": "0o755",
+      "bytes": 106272
+    },
+    "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.plist": {
+      "sha256": "73d6d16c4dfeca984eea330f6e9408fd8b4ced6dfa45cf779f8590ceee0718ed",
+      "mode": "0o644",
+      "bytes": 329
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/Info.plist": {
+      "sha256": "0b418065baba04e8c9f75350adb4ebd91772e5d5bf549b771d983f055efcb5e5",
+      "mode": "0o644",
+      "bytes": 276
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/RelaxTunePrefs": {
+      "sha256": "8520cd0e89a7657f25e5cff6b3a53b77e0412df3183e312e1c08829c84d725d1",
+      "mode": "0o755",
+      "bytes": 169792
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/Root.plist": {
+      "sha256": "8d143f8e2aefe6fd6413886ef19afa923b2c50363f8a120d8d7f16bae35cd20e",
+      "mode": "0o644",
+      "bytes": 1085
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon.png": {
+      "sha256": "7cd0d67098887d63f29749371e691bb4055d2ebd550fd260c8f68104f50804d2",
+      "mode": "0o644",
+      "bytes": 648
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@2x.png": {
+      "sha256": "70b3aa60a1279c1ec60fb4a3744370dac31640011805ce4e0bc8ee8831c20255",
+      "mode": "0o644",
+      "bytes": 1311
+    },
+    "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@3x.png": {
+      "sha256": "fdc5e5a4809bcbc8dee1d07624e1f7da2ee8eb67312230b9828338c3ca0dae51",
+      "mode": "0o644",
+      "bytes": 1994
+    },
+    "Library/PreferenceLoader/Preferences/RelaxTune.plist": {
+      "sha256": "cec708f83e19276990743727d96ff5a6530033a11d3ce0c7a0ed0357e54cf069",
+      "mode": "0o644",
+      "bytes": 188
+    },
+    "Library/ccSystem/system_tweaks.sh": {
+      "sha256": "855a2a956ffc68d434f50f25c9299e840eeda478a37dc1960fef49b6438c60b7",
+      "mode": "0o644",
+      "bytes": 3796
+    }
+  },
+  "reextraction_exact_match": true,
+  "device_runtime_tested": false,
+  "highrefresh_switch": "startup-only; restart SpringBoard and apps after changes"
+}

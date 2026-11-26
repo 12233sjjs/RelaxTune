@@ -1,113 +1,24 @@
 #import <UIKit/UIKit.h>
-#import <QuartzCore/QuartzCore.h>
-#import <objc/runtime.h>
+#import <dlfcn.h>
 #import "Settings.h"
 
-@interface RTFrameRequest : NSObject
-@property(nonatomic) CAFrameRateRange range;
-@property(nonatomic) NSInteger frames;
-@property(nonatomic) BOOL usesRange;
-@end
-@implementation RTFrameRequest
-@end
-
-static NSHashTable<CADisplayLink *> *RTDisplayLinks;
-static char RTFrameRequestKey;
-static __thread BOOL RTApplyingRefresh;
-
-static BOOL RTPrefer120(void) {
-    return atomic_load(&RTHighRefresh) &&
-           UIScreen.mainScreen.maximumFramesPerSecond >= 120 &&
-           !NSProcessInfo.processInfo.lowPowerModeEnabled;
-}
-
-// Keep the caller's request so disabling the option restores the original pacing.
-static RTFrameRequest *RTTrackDisplayLink(CADisplayLink *link) {
-    RTFrameRequest *request = objc_getAssociatedObject(link, &RTFrameRequestKey);
-    if (!request) {
-        request = [RTFrameRequest new];
-        request.range = link.preferredFrameRateRange;
-        request.usesRange = YES;
-        objc_setAssociatedObject(link, &RTFrameRequestKey, request, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [RTDisplayLinks addObject:link];
-    }
-    return request;
-}
-
-static void RTApplyDisplayRequest(CADisplayLink *link, RTFrameRequest *request) {
-    RTApplyingRefresh = YES;
-    @try {
-        if (RTPrefer120()) {
-            link.preferredFrameRateRange = CAFrameRateRangeMake(120, 120, 120);
-        } else if (request.usesRange) {
-            link.preferredFrameRateRange = request.range;
-        } else {
-            link.preferredFramesPerSecond = request.frames;
-        }
-    } @finally {
-        RTApplyingRefresh = NO;
-    }
-}
-
+// ProMotion120 1.0.14-1 is the unmodified, user-supplied RootHide module.
+// Its Filter targets a deliberately nonmatching bundle, avoiding ordinary
+// auto-injection (not a security boundary against an external loader). Explicit
+// loading here makes the existing master/HighRefresh preferences control hook
+// installation without stacking the old hooks.
+// Substrate hooks and the module's persistent keepalive cannot safely be removed
+// by dlclose. Changing either switch requires restarting SpringBoard and apps.
 void RTRefreshRateDidChange(void) {
-    if (!RTDisplayLinks) return;
-    @synchronized (RTDisplayLinks) {
-        for (CADisplayLink *link in RTDisplayLinks.allObjects)
-            RTApplyDisplayRequest(link, RTTrackDisplayLink(link));
-    }
+    // Deliberately no live uninstall/reinstall of an already active hook set.
 }
-
-%group RTRefreshHooks
-%hook CADisplayLink
-- (void)addToRunLoop:(NSRunLoop *)runLoop forMode:(NSRunLoopMode)mode {
-    @synchronized (RTDisplayLinks) {
-        RTApplyDisplayRequest(self, RTTrackDisplayLink(self));
-    }
-    %orig;
-}
-- (void)setPreferredFrameRateRange:(CAFrameRateRange)range {
-    if (RTApplyingRefresh) {
-        %orig(range);
-        return;
-    }
-    @synchronized (RTDisplayLinks) {
-        RTFrameRequest *request = RTTrackDisplayLink(self);
-        request.range = range;
-        request.usesRange = YES;
-        RTApplyDisplayRequest(self, request);
-    }
-}
-- (void)setPreferredFramesPerSecond:(NSInteger)frames {
-    if (RTApplyingRefresh) {
-        %orig(frames);
-        return;
-    }
-    @synchronized (RTDisplayLinks) {
-        RTFrameRequest *request = RTTrackDisplayLink(self);
-        request.frames = frames;
-        request.usesRange = NO;
-        RTApplyDisplayRequest(self, request);
-    }
-}
-- (void)invalidate {
-    @synchronized (RTDisplayLinks) {
-        [RTDisplayLinks removeObject:self];
-    }
-    %orig;
-}
-%end
-%end
 
 %ctor {
     @autoreleasepool {
-        if (![NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"] ||
-            !RTShouldLoadAppHooks()) return;
         RTLoadSettings();
-        RTDisplayLinks = [NSHashTable weakObjectsHashTable];
-        [NSNotificationCenter.defaultCenter addObserverForName:NSProcessInfoPowerStateDidChangeNotification
-            object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
-                RTRefreshRateDidChange();
-            }];
-        %init(RTRefreshHooks);
+        if (!atomic_load(&RTEnabled) || !atomic_load(&RTHighRefresh)) return;
+        // Same directory preserves the provider's @loader_path/.jbroot imports.
+        // The provider performs its own supported-model and process checks.
+        (void)dlopen("@loader_path/RelaxTuneProMotion120.dylib", RTLD_NOW | RTLD_LOCAL);
     }
 }

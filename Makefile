@@ -1,6 +1,12 @@
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:16.0
-THEOS_PACKAGE_SCHEME ?= rootless
+THEOS_PACKAGE_SCHEME ?= roothide
+
+# The imported provider is the supplied arm64e RootHide binary, not a rebuilt
+# rootless module. Do not silently package it as a standard rootless build.
+ifneq ($(THEOS_PACKAGE_SCHEME),roothide)
+$(error This ProMotion120 integration requires THEOS_PACKAGE_SCHEME=roothide)
+endif
 
 include $(THEOS)/makefiles/common.mk
 

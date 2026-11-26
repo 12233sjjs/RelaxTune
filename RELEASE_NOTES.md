@@ -1,3 +1,18 @@
+# 0.5.1 — ProMotion120 integration (2026-11-26)
+
+- Replace both legacy 120Hz paths with the supplied ProMotion120 1.0.14-1 module. The provider binary is byte-for-byte preserved (SHA-256 `ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb`).
+- Keep existing `Enabled` and `HighRefresh` preferences and defaults. Both must be enabled at process startup; changing either requires restarting SpringBoard and target apps. Never dlclose active Substrate hooks.
+- Deliberately union the main injection filter with the provider's full bundle coverage, including UserNotificationsUIServer and SpringBoardOutofCallUI. Per the 2026-11-26 follow-up, existing non-refresh features may also cover the added eligible processes under their original guards, switches and animation exclusions; this does not force-enable features or bypass injector policy.
+- Use a deliberately nonmatching helper bundle filter so ordinary injection does not bypass the startup switches. It is not a security boundary against an external loader.
+- Leave animation timing, wake/unlock, network, TCP_NODELAY, zombie cleanup and the manual kernel script implementation unchanged outside their old high-refresh helper; audio remains unbuilt and kernel actions remain manual.
+- Preserve every original control/data archive entry's numeric owner/group, names, mode, timestamps, type and link target, avoiding the prior root-owner-group repackaging change. The final prebuilt DEB SHA-256 is `d9d430c5327ecdffa8e1c821e479a76571ff4cfba9ff686f9f09b9789839b375`.
+- Add conflicts with standalone ProMotion/known overlapping refresh tweaks to prevent double installation of refresh hooks.
+- This integration is arm64e RootHide only, matching the supplied provider. It may increase energy use/heat and does not guarantee measured 120Hz or game FPS.
+- The shipped DEB is a minimal binary adaptation of the two pinned input packages, not a claimed reproducible Theos build. Source adapters support a subsequent independent Theos rebuild.
+- Static review, per-file/package integrity checks, 144 code-page digests and isolated mocked loader tests pass. The arm64e test uses a normalized call in a Linux test-memory copy only; delivered PAC code is statically reviewed, and actual PAC execution is not runtime tested. No jailbroken-device install/load/refresh-rate measurement performed.
+
+## Historical release notes
+
 Target: iPhone 13 Pro, iOS 16.6.1, Relaxin.
 
 Startup animation phase timing in 0.4.12:

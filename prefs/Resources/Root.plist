@@ -6,7 +6,8 @@
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>总开关</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>Enabled</string><key>default</key><true/></dict>
-    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>动画</string></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>动画</string>
+        <key>footerText</key><string>120Hz使用ProMotion 1.0.14-1原始模块；更改总开关或120Hz开关后，须重载SpringBoard并重开App。其他设置保留原逻辑。</string></dict>
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>调整动画</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>Animations</string><key>default</key><true/></dict>
@@ -15,7 +16,7 @@
         <key>key</key><string>AnimationAcceleration</string></dict>
     <dict><key>cell</key><string>PSButtonCell</string><key>label</key><string>动画屏蔽名单</string>
         <key>action</key><string>rtEditAnimationExclusions:</string></dict>
-    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>系统动画120Hz优先</string>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>ProMotion 120Hz（重启生效）</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>HighRefresh</string><key>default</key><true/></dict>
     <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>锁屏动画</string></dict>

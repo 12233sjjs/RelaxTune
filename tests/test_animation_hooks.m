@@ -14,6 +14,7 @@ static BOOL raiseDuringFolder;
 static BOOL lockScreenVisible = YES;
 static BOOL useWakeFallback;
 static CGPoint lastP1, lastP2;
+static CGFloat lastDamping, lastVelocity, lastDampingRatio;
 BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
 
 @implementation UIScreen
@@ -46,6 +47,7 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
      initialSpringVelocity:(CGFloat)v options:(UIViewAnimationOptions)o
                 animations:(void (^)(void))a completion:(void (^)(BOOL))c {
     originalSpring = YES;
+    lastDamping = damping; lastVelocity = v;
     [self animateWithDuration:d delay:delay options:o animations:a completion:c];
 }
 + (void)_animateUsingSpringWithTension:(double)t friction:(double)f interactive:(BOOL)i
@@ -69,7 +71,7 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
     return [self initWithDuration:d timingParameters:nil];
 }
 - (instancetype)initWithDuration:(double)d dampingRatio:(CGFloat)r animations:(void (^)(void))a {
-    originalSpring = YES;
+    originalSpring = YES; lastDampingRatio = r;
     return [self initWithDuration:d timingParameters:nil];
 }
 + (instancetype)runningPropertyAnimatorWithDuration:(double)d delay:(double)delay options:(UIViewAnimationOptions)o
@@ -95,15 +97,23 @@ BOOL UIAccessibilityIsReduceMotionEnabled(void) { return reducedMotion; }
     return settings;
 }
 @end
+// Production discovers this exact runtime name. The inherited immutable factory
+// allocates self, distinguishing converted results from native RTTest settings.
+@interface BSAnimationSettings : RTTestAnimationSettings
+@end
+@implementation BSAnimationSettings
+@end
+
 @interface SBFAnimationSettings : NSObject
 @property double duration;
 @property double delay;
 @property double speed;
+@property (strong) id timingFunction;
 - (id)BSAnimationSettings;
 @end
 @implementation SBFAnimationSettings
 - (id)BSAnimationSettings {
-    return [RTTestAnimationSettings settingsWithDuration:self.duration delay:self.delay timingFunction:nil];
+    return [RTTestAnimationSettings settingsWithDuration:self.duration delay:self.delay timingFunction:self.timingFunction];
 }
 @end
 
@@ -159,7 +169,7 @@ static void folderFixtureAnimation(void) {
     if (raiseDuringFolder) [NSException raise:@"folder fixture" format:@"failure"];
     id result = [settings BSAnimationSettings];
     folderExportDuration = [result duration];
-    folderExportNative = [result isKindOfClass:RTTestAnimationSettings.class];
+    folderExportNative = [result isMemberOfClass:RTTestAnimationSettings.class];
     folderFixtureAnimation();
     if (completion) ((void (^)(void))completion)();
 }
@@ -244,43 +254,57 @@ static void folderFixtureAnimation(void) {
 @end
 
 static void near(double actual, double expected) { assert(fabs(actual - expected) < 1e-9); }
+// 0.5 changes eligible timing only: caller options, curves and public spring
+// parameters must survive; do not restore the old forced ease-out conversion.
 static void testUIKit(void) {
     __block unsigned completionCount = 0;
     [UIView animateWithDuration:0.5 animations:^{} completion:^(BOOL done) {
         assert(done); completionCount++;
     }];
     near(durations.lastObject.doubleValue, 0.5 / 1.9); assert(completionCount == 1);
-    assert((lastOptions & (3 << 16)) == UIViewAnimationOptionCurveEaseOut);
+    assert(lastOptions == 0);
+    originalSpring = NO;
+    UIViewAnimationOptions springOptions = UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionCurveLinear;
     [UIView animateWithDuration:0.5 delay:0.2 usingSpringWithDamping:0.4 initialSpringVelocity:1
-        options:UIViewAnimationOptionAllowUserInteraction animations:^{
+        options:springOptions animations:^{
+            assert(lastOptions == springOptions); near(lastDelay, 0.2 / 1.9);
             [UIView animateWithDuration:0.3 animations:^{}];
-        } completion:nil];
-    assert(!originalSpring);
+        } completion:^(BOOL done) { assert(done); completionCount++; }];
+    assert(originalSpring && completionCount == 2);
+    near(lastDamping, 0.4); near(lastVelocity, 1);
     near(durations[durations.count - 2].doubleValue, 0.5 / 1.9);
     near(durations.lastObject.doubleValue, 0.3); // nested call is not scaled twice
     [UIView animateWithDuration:0.5 delay:0.2 options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:nil];
     near(lastDelay, 0.2 / 1.9);
-    assert(lastOptions & UIViewAnimationOptionAllowUserInteraction);
-    assert(lastOptions & UIViewAnimationOptionBeginFromCurrentState);
+    assert(lastOptions == UIViewAnimationOptionAllowUserInteraction);
+    UIViewAnimationOptions callerOptions = UIViewAnimationOptionCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState;
+    [UIView animateWithDuration:0.5 delay:0.2 options:callerOptions animations:^{} completion:nil];
+    assert(lastOptions == callerOptions);
 }
 static void testPropertyAnimator(void) {
     UIViewPropertyAnimator *a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5
         curve:UIViewAnimationCurveLinear animations:^{}];
     near(a.duration, 0.5 / 1.9);
-    assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveEaseOut);
+    assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 timingParameters:nil];
-    near(a.duration, 0.5 / 1.9); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveEaseOut);
+    near(a.duration, 0.5 / 1.9); assert(a.timing == nil);
+    UICubicTimingParameters *timing = [[UICubicTimingParameters alloc] initWithAnimationCurve:UIViewAnimationCurveEaseIn];
+    a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 timingParameters:timing];
+    near(a.duration, 0.5 / 1.9); assert(a.timing == timing);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 controlPoint1:CGPointMake(1, 0)
         controlPoint2:CGPointMake(1, 0) animations:^{}];
-    near(a.duration, 0.5 / 1.9); near(lastP1.x, 0); near(lastP2.x, 0.58); near(lastP2.y, 1);
+    near(a.duration, 0.5 / 1.9);
+    near(lastP1.x, 1); near(lastP1.y, 0); near(lastP2.x, 1); near(lastP2.y, 0);
+    originalSpring = NO;
     a = [[UIViewPropertyAnimator alloc] initWithDuration:0.5 dampingRatio:0.4 animations:^{}];
-    near(a.duration, 0.5 / 1.9); assert(!originalSpring);
+    near(a.duration, 0.5 / 1.9); assert(originalSpring); near(lastDampingRatio, 0.4);
     __block unsigned finished = 0;
     a = [UIViewPropertyAnimator runningPropertyAnimatorWithDuration:0.5 delay:0.2
         options:UIViewAnimationOptionAllowUserInteraction animations:^{} completion:^(UIViewAnimatingPosition p) {
             assert(p == UIViewAnimatingPositionEnd); finished++;
         }];
     near(a.duration, 0.5 / 1.9); near(lastDelay, 0.2 / 1.9); assert(finished == 1);
+    assert(lastOptions == UIViewAnimationOptionAllowUserInteraction);
     a = [[UIViewPropertyAnimator alloc] initWithDuration:5 curve:UIViewAnimationCurveLinear animations:^{}];
     near(a.duration, 5); assert([(UICubicTimingParameters *)a.timing curve] == UIViewAnimationCurveLinear);
 }
@@ -292,20 +316,30 @@ static void testSpringBoard(void) {
     near(legacy.duration, 0.3); // reproduces the 0.4.4 no-op on an immutable result
     SBFAnimationSettings *source = [SBFAnimationSettings new];
     source.duration = 0.3; source.delay = 0.15; source.speed = 1;
+    // The production factory must preserve the caller's timing object, not
+    // synthesize a fixed curve; a missing timing function must remain nil.
+    id timing = [NSObject new];
+    source.timingFunction = timing;
+    assert(NSClassFromString(@"BSAnimationSettings") == BSAnimationSettings.class);
     id result = [source BSAnimationSettings];
     assert(![result respondsToSelector:NSSelectorFromString(@"setSpeed:")]);
     near([result duration], 0.3 / 1.9); near([result delay], 0.15 / 1.9); near(source.duration, 0.3);
-    assert([result timingFunction]);
-    assert(![result isKindOfClass:RTTestAnimationSettings.class]);
+    assert([result timingFunction] == timing);
+    assert([result isMemberOfClass:BSAnimationSettings.class]);
+    source.timingFunction = nil;
+    result = [source BSAnimationSettings];
+    assert([result isMemberOfClass:BSAnimationSettings.class]);
+    assert([result timingFunction] == nil);
+    near([result duration], 0.3 / 1.9); near([result delay], 0.15 / 1.9);
     source.speed = 2;
     near([[source BSAnimationSettings] duration], 0.3 / 3.8);
     atomic_store(&RTAnimationFactor, 2);
     near([[source BSAnimationSettings] duration], 0.3 / 5.6);
     atomic_store(&RTAnimationFactor, 1);
     assert(!RTCreateAnimationSettings(Nil, 0.3, 0, 1, 1, nil));
-    assert(!RTCreateAnimationSettings(RTTestAnimationSettings.class, NAN, 0, 1, 1, nil));
-    RTTestAnimationSettings *fixture = RTCreateAnimationSettings(RTTestAnimationSettings.class, 0.3, 0, 1, 1, nil);
-    near(fixture.duration, 0.3 / 1.9);
+    assert(!RTCreateAnimationSettings(BSAnimationSettings.class, NAN, 0, 1, 1, nil));
+    RTTestAnimationSettings *fixture = RTCreateAnimationSettings(BSAnimationSettings.class, 0.3, 0, 1, 1, nil);
+    near(fixture.duration, 0.3 / 1.9); assert(fixture.timingFunction == nil);
     source.duration = 3;
     near([[source BSAnimationSettings] duration], 3);
 }
@@ -350,7 +384,7 @@ static void testFolderAnimations(void) {
             for (unsigned repeat = 0; repeat < 2; repeat++) {
                 id result = [s BSAnimationSettings];
                 near([result duration], 0.5);
-                assert([result isKindOfClass:RTTestAnimationSettings.class]);
+                assert([result isMemberOfClass:RTTestAnimationSettings.class]);
             }
         }
     }
