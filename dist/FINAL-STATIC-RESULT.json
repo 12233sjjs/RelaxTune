@@ -1,0 +1,594 @@
+{
+  "status": "PASS_STATIC",
+  "inputs": {
+    "candidate": {
+      "path": "/var/minis/workspace/refresh-continue/delivery-final/com.12233sjjs.relaxtune_0.5.1_iphoneos-arm64e.deb",
+      "bytes": 50070,
+      "sha256": "d9d430c5327ecdffa8e1c821e479a76571ff4cfba9ff686f9f09b9789839b375"
+    },
+    "original": {
+      "path": "/var/minis/shared/relaxtune/recovered-originals/com.12233sjjs.relaxtune_0.5_iphoneos-arm64e.deb",
+      "bytes": 33228,
+      "sha256": "d5130ca773d45b45ca48e61781b88365a0492b93eec3ce84519d389c348b8403"
+    },
+    "donor": {
+      "path": "/var/minis/shared/relaxtune/recovered-originals/ProMotion 120Hz-1.0.14-1-iphoneos-arm64e.deb",
+      "bytes": 19460,
+      "sha256": "b96bfa462178b034897400cec04cdbd334a27453f8582f6738de0dc6e7c741ff"
+    }
+  },
+  "read_only_inputs_unchanged_after_audit": true,
+  "method": "Independent Python ar/tar, Mach-O, symbol/indirect table, Capstone and CodeDirectory parsing from actual archive bytes; no import/execution of patch_refresh.py, macho_inspect.py or codesign_util.py; no audit.json used for computed evidence",
+  "archive": {
+    "original_entries": 21,
+    "original_control_entries": 2,
+    "original_data_entries": 19,
+    "candidate_entries": 23,
+    "metadata_fields_checked": [
+      "uid",
+      "gid",
+      "uname",
+      "gname",
+      "mode",
+      "mtime",
+      "type",
+      "linkname"
+    ],
+    "all_original_metadata_equal": true,
+    "original_common_fields": {
+      "uid": 501,
+      "gid": 20,
+      "uname": "root",
+      "gname": "wheel",
+      "linkname": ""
+    },
+    "original_entry_columns": [
+      "archive",
+      "name",
+      "mode_octal",
+      "mtime_epoch",
+      "type"
+    ],
+    "original_entries_metadata": [
+      [
+        "control",
+        ".",
+        "0755",
+        1795180615,
+        "5"
+      ],
+      [
+        "control",
+        "./control",
+        "0644",
+        1795180615,
+        "0"
+      ],
+      [
+        "data",
+        ".",
+        "0755",
+        1795180615,
+        "5"
+      ],
+      [
+        "data",
+        "Library",
+        "0755",
+        1795180615,
+        "5"
+      ],
+      [
+        "data",
+        "Library/MobileSubstrate",
+        "0755",
+        1795180614,
+        "5"
+      ],
+      [
+        "data",
+        "Library/MobileSubstrate/DynamicLibraries",
+        "0755",
+        1795180614,
+        "5"
+      ],
+      [
+        "data",
+        "Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib",
+        "0755",
+        1795180614,
+        "0"
+      ],
+      [
+        "data",
+        "Library/MobileSubstrate/DynamicLibraries/RelaxTune.plist",
+        "0644",
+        1795180615,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles",
+        "0755",
+        1795180615,
+        "5"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle",
+        "0755",
+        1795180613,
+        "5"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/Info.plist",
+        "0644",
+        1795180615,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/RelaxTunePrefs",
+        "0755",
+        1795180613,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/Root.plist",
+        "0644",
+        1795180615,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon.png",
+        "0644",
+        1795180566,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@2x.png",
+        "0644",
+        1795180566,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@3x.png",
+        "0644",
+        1795180566,
+        "0"
+      ],
+      [
+        "data",
+        "Library/PreferenceLoader",
+        "0755",
+        1795180566,
+        "5"
+      ],
+      [
+        "data",
+        "Library/PreferenceLoader/Preferences",
+        "0755",
+        1795180566,
+        "5"
+      ],
+      [
+        "data",
+        "Library/PreferenceLoader/Preferences/RelaxTune.plist",
+        "0644",
+        1795180615,
+        "0"
+      ],
+      [
+        "data",
+        "Library/ccSystem",
+        "0755",
+        1795180566,
+        "5"
+      ],
+      [
+        "data",
+        "Library/ccSystem/system_tweaks.sh",
+        "0644",
+        1795180566,
+        "0"
+      ]
+    ],
+    "ar_all_headers_equal_except_size": true,
+    "ar_timestamp": 1795180616,
+    "ar_uid": 0,
+    "ar_gid": 0,
+    "ar_mode_octal": "100644",
+    "debian_binary_payload_equal": true,
+    "no_extra_entries_beyond_two_additions": true,
+    "safe_paths_no_links_no_pax_no_duplicates": true
+  },
+  "unchanged_original_files": [
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/Info.plist",
+      "bytes": 276,
+      "sha256": "0b418065baba04e8c9f75350adb4ebd91772e5d5bf549b771d983f055efcb5e5"
+    },
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/RelaxTunePrefs",
+      "bytes": 169792,
+      "sha256": "8520cd0e89a7657f25e5cff6b3a53b77e0412df3183e312e1c08829c84d725d1"
+    },
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon.png",
+      "bytes": 648,
+      "sha256": "7cd0d67098887d63f29749371e691bb4055d2ebd550fd260c8f68104f50804d2"
+    },
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@2x.png",
+      "bytes": 1311,
+      "sha256": "70b3aa60a1279c1ec60fb4a3744370dac31640011805ce4e0bc8ee8831c20255"
+    },
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/icon@3x.png",
+      "bytes": 1994,
+      "sha256": "fdc5e5a4809bcbc8dee1d07624e1f7da2ee8eb67312230b9828338c3ca0dae51"
+    },
+    {
+      "path": "Library/PreferenceLoader/Preferences/RelaxTune.plist",
+      "bytes": 188,
+      "sha256": "cec708f83e19276990743727d96ff5a6530033a11d3ce0c7a0ed0357e54cf069"
+    },
+    {
+      "path": "Library/ccSystem/system_tweaks.sh",
+      "bytes": 3796,
+      "sha256": "855a2a956ffc68d434f50f25c9299e840eeda478a37dc1960fef49b6438c60b7"
+    }
+  ],
+  "modified_original_files": [
+    {
+      "path": "DEBIAN/control",
+      "bytes_before": 358,
+      "bytes_after": 496,
+      "sha256_before": "8acb533c3d058fdfce6cfde7ae6d6e2a6330a44112f44fc5ac4347086b4d65fc",
+      "sha256_after": "9f1ce20fb9e89e2001ceb82f9ea0ad793b1c9047982a7cba0a445a788ad43202"
+    },
+    {
+      "path": "Library/MobileSubstrate/DynamicLibraries/RelaxTune.dylib",
+      "bytes_before": 206784,
+      "bytes_after": 206784,
+      "sha256_before": "9d3973e658fdd5edc1c1174de499842acfe7c6b25d9d9ee1ff0049c1d1e6329f",
+      "sha256_after": "de564b1f7b19e964647aa9565ba2d1c0de91881ef1a7f05b4f7f0189844a5b2f"
+    },
+    {
+      "path": "Library/MobileSubstrate/DynamicLibraries/RelaxTune.plist",
+      "bytes_before": 113,
+      "bytes_after": 465,
+      "sha256_before": "45a2e0920c0ee087d47fdf640b03ffdae82050b4123c41e9521f1d6b2a16963f",
+      "sha256_after": "d2d7225973e568b4a6aac472d6b87cc2f04c481946ae11d087a3fa70056533f2"
+    },
+    {
+      "path": "Library/PreferenceBundles/RelaxTunePrefs.bundle/Root.plist",
+      "bytes_before": 901,
+      "bytes_after": 1085,
+      "sha256_before": "36250823778f5a806c12a770c7c1fa78565568e90c57e1b0829819d93360ba34",
+      "sha256_after": "8d143f8e2aefe6fd6413886ef19afa923b2c50363f8a120d8d7f16bae35cd20e"
+    }
+  ],
+  "added_files": [
+    {
+      "path": "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.dylib",
+      "bytes": 106272,
+      "sha256": "ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb",
+      "uid": 0,
+      "gid": 0,
+      "uname": "root",
+      "gname": "root",
+      "mode": "0755",
+      "mtime": 1791543034,
+      "type": "0",
+      "linkname": "",
+      "all_eight_metadata_fields_match_donor": true,
+      "bytes_equal_donor": true
+    },
+    {
+      "path": "Library/MobileSubstrate/DynamicLibraries/RelaxTuneProMotion120.plist",
+      "bytes": 329,
+      "sha256": "73d6d16c4dfeca984eea330f6e9408fd8b4ced6dfa45cf779f8590ceee0718ed",
+      "uid": 0,
+      "gid": 0,
+      "uname": "root",
+      "gname": "root",
+      "mode": "0644",
+      "mtime": 1791543034,
+      "type": "0",
+      "linkname": "",
+      "all_eight_metadata_fields_match_donor": true,
+      "bytes_equal_donor": false
+    }
+  ],
+  "macho": [
+    {
+      "arch": "arm64",
+      "slice_offset": "0x4000",
+      "cputype": "0x100000c",
+      "cpusubtype": "0x0",
+      "slice_bytes": 92096,
+      "ret_entries": [
+        {
+          "kind": "old_helper",
+          "va": "0x6f08",
+          "file_offset": 44808,
+          "old_hex": "ffc300d1",
+          "new_hex": "c0035fd6"
+        },
+        {
+          "kind": "refresh_callback",
+          "va": "0x72e0",
+          "file_offset": 45792,
+          "old_hex": "ff8304d1",
+          "new_hex": "c0035fd6"
+        }
+      ],
+      "constructor_va": "0x7604",
+      "loader_va": "0x761c",
+      "loader_file_offset": 46620,
+      "loader_bytes": 116,
+      "settings_va": "0x7c10",
+      "dlsym_stub_va": "0x81fc",
+      "epilogue_va": "0x777c",
+      "call_instruction": "blr",
+      "registered_in_init_offsets": true,
+      "original_prologue_and_epilogue_unchanged": true
+    },
+    {
+      "arch": "arm64e",
+      "slice_offset": "0x1c000",
+      "cputype": "0x100000c",
+      "cpusubtype": "0x80000002",
+      "slice_bytes": 92096,
+      "ret_entries": [
+        {
+          "kind": "old_helper",
+          "va": "0x72bc",
+          "file_offset": 144060,
+          "old_hex": "7f2303d5",
+          "new_hex": "c0035fd6"
+        },
+        {
+          "kind": "refresh_callback",
+          "va": "0x76ec",
+          "file_offset": 145132,
+          "old_hex": "7f2303d5",
+          "new_hex": "c0035fd6"
+        }
+      ],
+      "constructor_va": "0x7a3c",
+      "loader_va": "0x7a58",
+      "loader_file_offset": 146008,
+      "loader_bytes": 116,
+      "settings_va": "0x810c",
+      "dlsym_stub_va": "0x8778",
+      "epilogue_va": "0x7bd8",
+      "call_instruction": "blraaz",
+      "registered_in_init_offsets": true,
+      "original_prologue_and_epilogue_unchanged": true
+    }
+  ],
+  "binary_diff": {
+    "length_unchanged": true,
+    "bytes_different": 380,
+    "only_documented_ret_loader_and_hash_slot_ranges": true,
+    "allowed_file_ranges": [
+      [
+        44808,
+        44812
+      ],
+      [
+        45792,
+        45796
+      ],
+      [
+        46620,
+        46736
+      ],
+      [
+        144060,
+        144064
+      ],
+      [
+        145132,
+        145136
+      ],
+      [
+        146008,
+        146124
+      ],
+      [
+        107038,
+        107058
+      ],
+      [
+        107058,
+        107078
+      ],
+      [
+        107908,
+        107940
+      ],
+      [
+        107940,
+        107972
+      ],
+      [
+        205362,
+        205382
+      ],
+      [
+        206244,
+        206276
+      ]
+    ],
+    "changed_code_hash_slots": [
+      {
+        "file_offset": 107038,
+        "bytes": 20,
+        "directory_type": 0,
+        "page": 6
+      },
+      {
+        "file_offset": 107058,
+        "bytes": 20,
+        "directory_type": 0,
+        "page": 7
+      },
+      {
+        "file_offset": 107908,
+        "bytes": 32,
+        "directory_type": 4096,
+        "page": 6
+      },
+      {
+        "file_offset": 107940,
+        "bytes": 32,
+        "directory_type": 4096,
+        "page": 7
+      },
+      {
+        "file_offset": 205362,
+        "bytes": 20,
+        "directory_type": 0,
+        "page": 7
+      },
+      {
+        "file_offset": 206244,
+        "bytes": 32,
+        "directory_type": 4096,
+        "page": 7
+      }
+    ],
+    "before_sha256": "9d3973e658fdd5edc1c1174de499842acfe7c6b25d9d9ee1ff0049c1d1e6329f",
+    "after_sha256": "de564b1f7b19e964647aa9565ba2d1c0de91881ef1a7f05b4f7f0189844a5b2f"
+  },
+  "loader": {
+    "enabled_va": "0x10494",
+    "highrefresh_va": "0x10497",
+    "calls_settings_first": true,
+    "gate": "Enabled && HighRefresh && dlsym(RTLD_DEFAULT, \"dlopen\") != NULL",
+    "provider_path": "@loader_path/RelaxTuneProMotion120.dylib",
+    "dlopen_flags": 6,
+    "abstract_instruction_interpretation_cases_passed": 16,
+    "external_calls_mocked": true,
+    "native_execution_tested": false
+  },
+  "page_hashes": {
+    "directories": [
+      {
+        "image": "candidate",
+        "arch": "arm64",
+        "directory_slot": 0,
+        "algorithm": "sha1",
+        "code_limit": 90336,
+        "page_size": 4096,
+        "verified_code_slots": 23
+      },
+      {
+        "image": "candidate",
+        "arch": "arm64",
+        "directory_slot": 4096,
+        "algorithm": "sha256",
+        "code_limit": 90336,
+        "page_size": 4096,
+        "verified_code_slots": 23
+      },
+      {
+        "image": "candidate",
+        "arch": "arm64e",
+        "directory_slot": 0,
+        "algorithm": "sha1",
+        "code_limit": 90336,
+        "page_size": 4096,
+        "verified_code_slots": 23
+      },
+      {
+        "image": "candidate",
+        "arch": "arm64e",
+        "directory_slot": 4096,
+        "algorithm": "sha256",
+        "code_limit": 90336,
+        "page_size": 4096,
+        "verified_code_slots": 23
+      },
+      {
+        "image": "provider",
+        "arch": "arm64e",
+        "directory_slot": 0,
+        "algorithm": "sha1",
+        "code_limit": 104352,
+        "page_size": 4096,
+        "verified_code_slots": 26
+      },
+      {
+        "image": "provider",
+        "arch": "arm64e",
+        "directory_slot": 4096,
+        "algorithm": "sha256",
+        "code_limit": 104352,
+        "page_size": 4096,
+        "verified_code_slots": 26
+      }
+    ],
+    "candidate_total": 92,
+    "provider_total": 52,
+    "candidate_embedded_special_hashes_verified": 4,
+    "provider_embedded_special_hashes_verified": 2,
+    "special_slot_1_zero_absent": true,
+    "cms_wrapper_present": false,
+    "amfi_trust_verified": false
+  },
+  "provider": {
+    "sha256": "ed0d0d483735bf0157cc848f5704a3925f2206c40a5ecea4f9b70b96611dddeb",
+    "bytes_equal_full_original_donor": true,
+    "format": "thin Mach-O arm64e",
+    "cpusubtype": "0x80000002"
+  },
+  "scope": {
+    "preference_diff": [
+      {
+        "path": "/items/2/footerText",
+        "old": null,
+        "new": "120Hz改用ProMotion 1.0.14-1原始实现。更改总开关或120Hz开关后，须重载SpringBoard并重新打开App；其他设置仍按原逻辑生效。"
+      },
+      {
+        "path": "/items/6/label",
+        "old": "系统动画120Hz优先",
+        "new": "ProMotion 120Hz（重启生效）"
+      }
+    ],
+    "main_filter_is_exact_original_donor_union": true,
+    "expanded_scope_authorized": true,
+    "other_function_guards_preserved_by_exhaustive_binary_diff": true,
+    "main_filter": [
+      "com.apple.UIKit",
+      "com.apple.springboard",
+      "com.apple.UserNotificationsUIServer",
+      "com.apple.springboard.SpringBoardOutofCallUI"
+    ],
+    "manual_only_provider_filter": {
+      "Filter": {
+        "Bundles": [
+          "com.12233sjjs.relaxtune.manual-loader-only"
+        ]
+      }
+    },
+    "data_regular_file_bytes": 492940,
+    "installed_size_kib": 482,
+    "archive_safe_relative_paths_no_duplicate_canonical_names_no_links_no_pax": true
+  },
+  "limitations": [
+    "No iOS device execution, actual dyld loading, PAC runtime or RootHide injection test.",
+    "CodeDirectory page/requirements hashes do not establish CMS signature validity or AMFI/trust-cache acceptance.",
+    "Provider is original thin arm64e, not a new arm64 provider; dual-architecture adapter patch does not certify provider compatibility with pure-arm64 processes.",
+    "Enabled/HighRefresh loading is startup-only; restart SpringBoard and reopen apps after changes."
+  ],
+  "submission_or_upload_performed": false
+}
