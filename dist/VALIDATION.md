@@ -15,8 +15,10 @@
 ## GitHub CI 与验收边界
 
 - 本机仍为 Linux；macOS Foundation / Logos 动画 fixture 和 Theos 源码构建由 GitHub Actions 执行。
-- 分支首次运行 `45732550494` 的 Linux 核心、设置、网络及内核脚本测试通过；macOS 动画 fixture 因模拟类 `BSAnimationSettings` 与系统 BaseBoard 同名而失败，尚未生成源码重建安装包。该失败不改变上述预构建 DEB 的静态审计结论。
-- 后续 CI 将隔离测试模拟类命名，并固定有效的 RootHide Theos 提交、记录真实工具链版本。最新完成状态及源码重建包以本分支对应的 [GitHub Actions](https://github.com/12233sjjs/RelaxTune/actions?query=branch%3Acodex%2Frelaxtune-0.5.1-promotion120-20261126) 为准，不把预构建包冒称为 CI 重建产物。
+- 分支首次运行 `45732550494` 的 Linux 核心、设置、网络及内核脚本测试通过；macOS 动画 fixture 因模拟类 `BSAnimationSettings` 与系统 BaseBoard 同名而失败。随后仅在测试编译中隔离全部 18 个模拟类，保留工厂 selector；静态选择器比较使用同等预处理基准，避免把头文件展开误判为 selector 变化。
+- **完整 CI 已通过**：[运行 45734390797](https://github.com/12233sjjs/RelaxTune/actions/runs/45734390797)，对应提交 `c3f8530cecf5d831f7dede4a3ee709deee64c14c`。Linux 核心/设置/内核/网络测试、macOS 应用策略与动画的默认/唤醒回退两模式、RootHide Theos 编译及打包后设置/供体检查均成功。生产 `src/` 与审计提交 `7ab0308` 相同。
+- 已固定实际有效的 RootHide Theos `958fea4f779943505b15b93c88bb4db8d97b346d`，不再对失效版本静默回退；`BUILD-INFO` 记录真实提交、子模块和 Xcode 16.4。
+- 该次 CI 源码重建包为 46,794 字节，SHA-256 `1e8f33bf510688d3b3967ca762753314b07db7c0ed10a6cf82120bd6cd037038`；已独立下载、核对清单、解包并重跑设置/供体检查。它与上文 50,070 字节预构建 DEB 是**两种不同来源的产物**，不能混用静态审计结论。后续文档提交的最新 CI 状态以本分支 [GitHub Actions](https://github.com/12233sjjs/RelaxTune/actions?query=branch%3Acodex%2Frelaxtune-0.5.1-promotion120-20261126) 为准。
 - 未做越狱 iPhone 安装、真实 dyld/PAC/AMFI/RootHide 信任、刷新率、FPS、发热或功耗测试。
 
 ## 上传状态
