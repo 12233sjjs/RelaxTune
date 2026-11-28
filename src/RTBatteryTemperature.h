@@ -2,7 +2,9 @@
 #define RT_BATTERY_TEMPERATURE_H
 
 #import <Foundation/Foundation.h>
+#import <CoreFoundation/CoreFoundation.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -14,17 +16,16 @@ NS_ASSUME_NONNULL_BEGIN
  * This is a synchronous one-shot read; callers should invoke it only while
  * their battery bubble is visible (approximately once per second at most).
  */
-FOUNDATION_EXPORT BOOL RTReadBatteryTemperatureC(double *outCelsius);
+FOUNDATION_EXPORT BOOL RTReadBatteryTemperatureC(double * _Nullable outCelsius);
 
 #if defined(RT_BATTERY_TEMPERATURE_TESTING)
-#include <stdint.h>
 /* Test-only ABI-compatible injection seam; never present in production builds. */
 typedef struct {
-    CFMutableDictionaryRef (*serviceMatching)(const char *name);
-    uint32_t (*serviceGetMatchingService)(uint32_t masterPort, CFDictionaryRef matching);
-    int32_t (*registryEntryCreateCFProperties)(uint32_t entry,
-        CFMutableDictionaryRef *properties, CFAllocatorRef allocator, uint32_t options);
-    int32_t (*objectRelease)(uint32_t object);
+    CFMutableDictionaryRef _Nullable (* _Nullable serviceMatching)(const char *name);
+    uint32_t (* _Nullable serviceGetMatchingService)(uint32_t masterPort, CFDictionaryRef matching);
+    int32_t (* _Nullable registryEntryCreateCFProperties)(uint32_t entry,
+        CFMutableDictionaryRef _Nullable * _Nonnull properties, CFAllocatorRef _Nullable allocator, uint32_t options);
+    int32_t (* _Nullable objectRelease)(uint32_t object);
 } RTBatteryTemperatureTestBackend;
 
 FOUNDATION_EXPORT void RTSetBatteryTemperatureTestBackend(
