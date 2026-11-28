@@ -1,0 +1,49 @@
+{
+  "integration": "RelaxTune 0.5.2 external DateInfo settings bridge",
+  "donor": {
+    "package": "com.zhuifeng.dateinfo",
+    "name": "快捷时间胶囊",
+    "version": "1.3.10",
+    "author": "zhuifeng",
+    "architecture": "iphoneos-arm64e",
+    "source_deb_sha256": "8673a62e53237c320e980fc94ad55ab273364c6d607452967de31f3f4546768a",
+    "public_repository": "https://github.com/temple002/zhuifeng",
+    "public_repository_revision_checked": "f7f28069c686dc57664bf83b2c7506d1e9d7fb91",
+    "distribution_status": "Not vendored. RelaxTune depends on the separately maintained package; no binary is copied or modified.",
+    "payload_sha256": {
+      "Library/MobileSubstrate/DynamicLibraries/DateInfo.dylib": "6898db822e70e8a7ba72852109259a9c234e9a82e03c6239282ead989bb005b4",
+      "Library/MobileSubstrate/DynamicLibraries/DateInfo.plist": "86345479d62d39c2b9fc6f879bbed191913b153deefa1aa486ca1e19c8664304",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/DateInfoPrefs": "f14f73cd1eb6bb8380e27d8ae258dec6555800cf77a8875e5bc7e6994b994da3",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/Info.plist": "f28ade199286d9c30902be1cd46f96ed8332a2c101d48efcfa0a3324046dc2ef",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/Root.plist": "0b67f543225044c02be47ef69d5c8e2e548ad6798bb4c2dc7ee244e4849cce66",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon.png": "2d0c187f20ffef279766941949ec1287ba8abcb4239bcf5d804acd1858968386",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon@2x.png": "bbae9f946a92f6e3fd3abfec68d05c7f370cdd2d3814d82e36eaf5924b5854e5",
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon@3x.png": "a09acf2d393e8374dd54888931edeed07b5ee1779e953bc0043d730cc311efa7"
+    },
+    "payload_mode_size": {
+      "Library/MobileSubstrate/DynamicLibraries/DateInfo.dylib": {"mode": "0755", "bytes": 558128},
+      "Library/MobileSubstrate/DynamicLibraries/DateInfo.plist": {"mode": "0644", "bytes": 93},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/DateInfoPrefs": {"mode": "0755", "bytes": 203792},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/Info.plist": {"mode": "0644", "bytes": 336},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/Root.plist": {"mode": "0644", "bytes": 1931},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon.png": {"mode": "0644", "bytes": 2049},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon@2x.png": {"mode": "0644", "bytes": 5559},
+      "Library/PreferenceBundles/DateInfoPrefs.bundle/icon@3x.png": {"mode": "0644", "bytes": 10511}
+    },
+    "external_standalone_preferenceloader_entry": {
+      "path": "Library/PreferenceLoader/Preferences/DateInfoPrefs.plist",
+      "sha256": "c1c9e141b0318ab1eca5fde754f06c0ee0df1cb9354a34eda09dcc972a214956",
+      "mode": "0644",
+      "bytes": 191,
+      "reason": "Remains owned and installed by the original DateInfo dependency. RelaxTune neither packages nor removes it; its shortcut is an additional entry."
+    },
+    "donor_bundle_metadata_note": "The donor's embedded DateInfoPrefs Info.plist says 1.3.4 although the package is 1.3.10. It is intentionally untouched in the separately distributed donor package."
+  },
+  "capsule_battery_temperature": {
+    "status": "Experimental source-built companion; no donor binary patch or redistribution",
+    "requested_unit": "degrees Celsius",
+    "unit": "°C",
+    "enabled_by_default": false,
+    "policy": "Independent opt-in companion; main-thread visible updates only; measured-fit append, no forced layout changes; missing readings show --°C; device access, accuracy, PAC, loader and layout remain unvalidated."
+  }
+}

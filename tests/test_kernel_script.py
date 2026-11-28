@@ -70,7 +70,8 @@ class KernelModuleTests(unittest.TestCase):
 
     def run_module(self, action, **environment):
         return subprocess.run(["sh", str(self.script), action], capture_output=True,
-                              text=True, env=dict(self.env, **environment), timeout=20)
+                              text=True, env=dict(self.env, **environment),
+                              timeout=float(os.environ.get("RT_TEST_SUBPROCESS_TIMEOUT", "20")))
 
     def data(self):
         return json.loads(self.fake_state.read_text())

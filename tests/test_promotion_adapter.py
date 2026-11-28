@@ -48,7 +48,7 @@ settings = {i.get('key'): i for i in items if i.get('key')}
 for key in ['Enabled', 'HighRefresh']:
     assert settings[key]['default'] is True
 assert '重启生效' in settings['HighRefresh']['label']
-assert 'Version: 0.5.1\n' in (root / 'control').read_text()
+assert 'Version: 0.5.2\n' in (root / 'control').read_text()
 assert 'Conflicts: com.doimty.promotion,' in (root / 'control').read_text()
 assert 'THEOS_PACKAGE_SCHEME ?= roothide' in (root / 'Makefile').read_text()
 print('PASS: original provider, manual filter, startup switches, old helper removal, source metadata')

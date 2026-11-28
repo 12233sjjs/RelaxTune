@@ -1,8 +1,15 @@
 # cc优化系统
 
 为 iPhone 13 Pro / iOS 16.6.1 / Relaxin v0.5.6 制作的实验性插件。
-提供历史标准 rootless 和 RootHide 构建。**当前 0.5.1 ProMotion 集成分支仅提供 RootHide / iphoneos-arm64e 包**，
-因为用户提供的 ProMotion120 模块是 arm64e RootHide 二进制；不把它冒充标准 rootless 模块。
+提供历史标准 rootless 和 RootHide 构建。**当前 0.5.2 集成分支仅提供 RootHide / iphoneos-arm64e 包**，
+因为现有 ProMotion120 模块是 arm64e RootHide 二进制；不把它冒充标准 rootless 模块。
+
+## 0.5.2：快捷时间胶囊独立依赖
+
+- RelaxTune 增加对 `com.zhuifeng.dateinfo (>= 1.3.10)` 的包依赖，并在 RelaxTune 设置页提供启动 DateInfo 设置的链接；运行时从已加载 RelaxTunePrefs.bundle 的相邻 PreferenceBundles 目录解析 `DateInfoPrefs.bundle`，不硬编码 `/var/jb` 等安装路径，并检查目标控制器确为 `PSListController` 子类。
+- 日期时间、天气、实时网速和活动状态避让仍由单独安装的原版 DateInfo 提供，原功能和独立偏好域保持不动，不受 RelaxTune 总开关影响；本包没有复制 DateInfo 二进制。
+- 增加源码构建的 SpringBoard 电池温度 companion，**默认关闭、属实验选项，并受 RelaxTune 总开关控制**。仅在识别到原 DateInfo 的类来源及完整方法签名、主线程且胶囊可见时，按不高于每秒一次的频率读取 `IOPMPowerSource` 的 `Temperature`；按已查证的 `/100` 换算惯例显示 °C，缺失时显示 `电池 --°C`，不使用 CPU 温度或 `thermalState` 替代。
+- 只在原时间标签按原字号能够容纳完整文本时追加温度；空间不足就保持原时间，不强制缩小字体、不增高胶囊或修改遮罩。默认关闭不是实机验证的替代：RootHide 加载顺序、真实 IORegistry 访问和传感器单位、字体与天气布局、硬件 PAC/AMFI 及稳定性仍须在目标设备验证。此分支不宣称已完成设备验证。
 
 ## 0.5.1：120Hz 更换为 ProMotion120 1.0.14-1
 
@@ -133,9 +140,10 @@ AVPlayer、AudioQueue、音频单元图连接、系统音效、DRM/卸载渲染�
 
 ## 安装
 
-从本仓库 Releases 下载，不要同时安装两个格式。
+本 0.5.2 工作分支通过 GitHub Actions 构建候选包，不自动修改 `main`，不创建 tag 或 Release。`dist/` 中旧 0.5.1 DEB 是历史产物，不是本次 0.5.2 候选。
 
-- 本 0.5.1 分支仅交付 Relaxin / RootHide：文件名含 `iphoneos-arm64e`，按包管理器支持情况安装。
+- 本 0.5.2 分支仅交付 Relaxin / RootHide：文件名含 `iphoneos-arm64e`，按包管理器支持情况安装。
+- 安装前需从原作者源 `https://temple002.github.io/zhuifeng/` 单独安装 DateInfo 1.3.10+，或让包管理器解析此依赖；本包不携带该第三方 DEB。温度选项默认关闭，只有愿意进行受控设备验证时再手动开启。
 - 旧版本的标准 rootless 包不代表此集成版也支持；当前导入模块只有 arm64e RootHide 格式。
   这里的包架构名称不能用来判断手机 CPU 架构。
 - 依赖 PreferenceLoader 和兼容的插件注入环境。

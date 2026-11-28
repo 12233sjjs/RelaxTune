@@ -1,3 +1,4 @@
+import json
 import pathlib
 import plistlib
 import sys
@@ -9,6 +10,7 @@ def read(path):
 
 
 root = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(".")
+repo = pathlib.Path(__file__).resolve().parents[1]
 if len(sys.argv) > 1:
     libraries = [root / "Library", root / "var/jb/Library"]
     libraries = [path for path in libraries if path.exists()]
@@ -21,6 +23,11 @@ if len(sys.argv) > 1:
     filter_file = library / "MobileSubstrate/DynamicLibraries/RelaxTune.plist"
     assert (bundle / "RelaxTunePrefs").is_file(), "Missing settings executable"
     assert (library / "ccSystem/system_tweaks.sh").is_file(), "Missing manual kernel module"
+    assert sorted(p.name for p in (library / "PreferenceLoader/Preferences").glob("*.plist")) == ["RelaxTune.plist"]
+    assert not (library / "PreferenceBundles/DateInfoPrefs.bundle").exists(), "Do not vendor donor preference bundle"
+    assert not (library / "MobileSubstrate/DynamicLibraries/DateInfo.dylib").exists(), "Do not vendor donor binary"
+    assert not (library / "MobileSubstrate/DynamicLibraries/DateInfo.plist").exists(), "Do not vendor donor filter"
+    assert not (library / "PreferenceLoader/Preferences/DateInfoPrefs.plist").exists(), "Use only RelaxTune root entry"
     payloads = list((library / "MobileSubstrate/DynamicLibraries").glob("*.dylib"))
     payloads += [bundle / "RelaxTunePrefs", library / "ccSystem/system_tweaks.sh"]
     for path in payloads:
@@ -33,10 +40,16 @@ if len(sys.argv) > 1:
                         b"LowPowerMode.framework", b"putDeviceInThermalSimulationMode:"):
             assert removed not in binary, f"Removed feature in {path}: {removed!r}"
 else:
-    entry_file = root / "layout/Library/PreferenceLoader/Preferences/RelaxTune.plist"
+    library = root / "layout/Library"
+    entry_file = library / "PreferenceLoader/Preferences/RelaxTune.plist"
     info_file = root / "prefs/Resources/Info.plist"
     root_file = root / "prefs/Resources/Root.plist"
     filter_file = root / "RelaxTune.plist"
+    assert sorted(p.name for p in (library / "PreferenceLoader/Preferences").glob("*.plist")) == ["RelaxTune.plist"]
+    assert not (library / "PreferenceBundles/DateInfoPrefs.bundle").exists(), "Do not vendor donor preference bundle"
+    assert not (library / "MobileSubstrate/DynamicLibraries/DateInfo.dylib").exists(), "Do not vendor donor binary"
+    assert not (library / "MobileSubstrate/DynamicLibraries/DateInfo.plist").exists(), "Do not vendor donor filter"
+    assert not (library / "PreferenceLoader/Preferences/DateInfoPrefs.plist").exists(), "Use only RelaxTune root entry"
 
 assert set(read(filter_file)["Filter"]["Bundles"]) == {
     "com.apple.UIKit", "com.apple.springboard", "com.apple.UserNotificationsUIServer",
@@ -46,6 +59,16 @@ assert set(read(filter_file)["Filter"]["Bundles"]) == {
 entry = read(entry_file)["entry"]
 info = read(info_file)
 settings = read(root_file)["items"]
+assert info["CFBundleVersion"] == info["CFBundleShortVersionString"] == "0.5.2"
+control = (repo / "control").read_text(encoding="utf-8")
+assert "Version: 0.5.2" in control
+assert "com.zhuifeng.dateinfo (>= 1.3.10)" in control
+manifest = json.loads((repo / "docs/TIME-CAPSULE-DONOR-MANIFEST.json").read_text(encoding="utf-8"))
+assert manifest["donor"]["source_deb_sha256"] == "8673a62e53237c320e980fc94ad55ab273364c6d607452967de31f3f4546768a"
+assert len(manifest["donor"]["payload_sha256"]) == 8
+assert set(manifest["donor"]["payload_sha256"]) == set(manifest["donor"]["payload_mode_size"])
+assert manifest["capsule_battery_temperature"]["unit"] == "°C"
+assert manifest["capsule_battery_temperature"]["enabled_by_default"] is False
 assert entry["isController"] is True, "Controller bundle must be marked for lazy loading"
 assert entry["cell"] == "PSLinkCell"
 assert entry["bundle"] == info["CFBundleExecutable"] == "RelaxTunePrefs"
@@ -53,7 +76,7 @@ assert entry["detail"] == info["NSPrincipalClass"] == "RTRootController"
 switches = {item["key"]: item for item in settings if item["cell"] == "PSSwitchCell"}
 assert set(switches) == {"Enabled", "Animations", "Network", "TCPNoDelay",
                          "HighRefresh", "ZombieReap",
-                         "WakeAnimations", "UnlockAnimations"}
+                         "WakeAnimations", "UnlockAnimations", "TimeCapsuleBatteryTemp"}
 for key, item in switches.items():
     assert item["defaults"] == "com.12233sjjs.relaxtune", key
     assert type(item["default"]) is bool, key
@@ -68,11 +91,34 @@ assert any(item.get("action") == "rtEditAnimationExclusions:" and "detail" not i
            for item in settings)
 assert not any("音效" in item.get("label", "") or item.get("key") == "Audio"
                for item in settings)
+capsule_links = [item for item in settings if item.get("action") == "rtOpenTimeCapsule:"]
+assert len(capsule_links) == 1
+assert capsule_links[0]["cell"] == "PSLinkCell"
+capsule_group = next(item for item in settings if item.get("label") == "快捷时间胶囊（独立模块）")
+assert "独立偏好域" in capsule_group["footerText"]
+assert "不受 RelaxTune 总开关影响" in capsule_group["footerText"]
+assert "电池温度" in capsule_group["footerText"]
+assert switches["TimeCapsuleBatteryTemp"]["default"] is False
+assert "实验选项" in capsule_group["footerText"]
+assert "空间" in capsule_group["footerText"]
+assert not any(item.get("defaults") == "com.zhuifeng.dateinfo" for item in settings)
 if len(sys.argv) == 1:
     controller_source = (root / "prefs/RootController.m").read_text(encoding="utf-8")
     assert "rtEditAnimationExclusions:(PSSpecifier *)specifier" in controller_source
     assert "RTAnimationExclusionController" not in controller_source
     assert "_factorStepper.stepValue = 0.1;" in controller_source
+    for required in ("[NSBundle bundleForClass:[self class]]",
+                     "URLByDeletingLastPathComponent",
+                     "URLByAppendingPathComponent:@\"DateInfoPrefs.bundle\"",
+                     "loadAndReturnError:",
+                     "NSClassFromString(@\"DIRootListController\")",
+                     "RTIsPSListControllerSubclass(capsuleControllerClass)",
+                     "[NSBundle bundleForClass:capsuleControllerClass]",
+                     "isEqual:capsuleBundle.bundleURL.URLByStandardizingPath",
+                     "pushViewController:capsuleController animated:YES",
+                     "rtShowTimeCapsuleUnavailable"):
+        assert required in controller_source, f"Missing safe capsule bridge part: {required}"
+    assert "/var/jb" not in controller_source
     tweak_source = (root / "src/Animation.x").read_text(encoding="utf-8")
     # The existing 0.5 implementation preserves the caller's curve/options.
     assert "RTSmoothOptions" not in tweak_source

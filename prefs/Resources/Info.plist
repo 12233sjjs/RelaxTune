@@ -5,6 +5,7 @@
     <key>CFBundleName</key><string>cc优化系统</string>
     <key>CFBundleExecutable</key><string>RelaxTunePrefs</string>
     <key>CFBundlePackageType</key><string>BNDL</string>
-    <key>CFBundleVersion</key><string>0.1.0</string>
+    <key>CFBundleShortVersionString</key><string>0.5.2</string>
+    <key>CFBundleVersion</key><string>0.5.2</string>
     <key>NSPrincipalClass</key><string>RTRootController</string>
 </dict></plist>

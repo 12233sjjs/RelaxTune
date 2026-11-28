@@ -42,4 +42,11 @@
     <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>自动清理僵尸进程</string>
         <key>defaults</key><string>com.12233sjjs.relaxtune</string>
         <key>key</key><string>ZombieReap</string><key>default</key><false/></dict>
+    <dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>快捷时间胶囊（独立模块）</string>
+        <key>footerText</key><string>日期时间、天气、网速和活动状态设置由单独安装的 DateInfo 1.3.10+ 提供，其原功能和独立偏好域开关不受 RelaxTune 总开关影响。电池温度为实验选项，默认关闭且受 RelaxTune 总开关控制；仅在胶囊可见、时间文字有足够空间时附加 °C，读数缺失显示 --°C，不强制缩小或扩展原布局。需在目标设备验证。</string></dict>
+    <dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>在胶囊显示电池温度</string>
+        <key>defaults</key><string>com.12233sjjs.relaxtune</string>
+        <key>key</key><string>TimeCapsuleBatteryTemp</string><key>default</key><false/></dict>
+    <dict><key>cell</key><string>PSLinkCell</string><key>label</key><string>打开快捷时间胶囊设置</string>
+        <key>action</key><string>rtOpenTimeCapsule:</string></dict>
 </array></dict></plist>

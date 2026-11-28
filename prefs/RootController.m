@@ -3,10 +3,19 @@
 #import <Preferences/PSTableCell.h>
 #import <UIKit/UIKit.h>
 #import <notify.h>
+#import <objc/runtime.h>
 #include <math.h>
 #include "Animation.h"
 
 static CFStringRef const RTDomain = CFSTR("com.12233sjjs.relaxtune");
+
+static BOOL RTIsPSListControllerSubclass(Class candidate) {
+    Class baseClass = PSListController.class;
+    for (Class currentClass = candidate; currentClass; currentClass = class_getSuperclass(currentClass)) {
+        if (currentClass == baseClass) return YES;
+    }
+    return NO;
+}
 
 static id RTReadPreference(NSString *key) {
     CFPreferencesAppSynchronize(RTDomain);
@@ -137,5 +146,49 @@ static void RTWritePreference(NSString *key, id value) {
     }
     [menu addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
     [self presentViewController:menu animated:YES completion:nil];
+}
+- (void)rtShowTimeCapsuleUnavailable {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"快捷时间胶囊不可用"
+        message:@"请确认 DateInfo 1.3.10 或更新版本已安装，并重新载入设置。"
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+- (void)rtOpenTimeCapsule:(PSSpecifier *)specifier {
+    (void)specifier;
+    NSBundle *relaxTuneBundle = [NSBundle bundleForClass:[self class]];
+    NSURL *preferenceBundlesURL = [relaxTuneBundle.bundleURL URLByDeletingLastPathComponent];
+    NSURL *capsuleURL = [preferenceBundlesURL URLByAppendingPathComponent:@"DateInfoPrefs.bundle"
+                                                              isDirectory:YES];
+    NSBundle *capsuleBundle = [NSBundle bundleWithURL:capsuleURL];
+    if (!capsuleBundle) {
+        [self rtShowTimeCapsuleUnavailable];
+        return;
+    }
+
+    NSError *loadError = nil;
+    if (![capsuleBundle isLoaded] && ![capsuleBundle loadAndReturnError:&loadError]) {
+        [self rtShowTimeCapsuleUnavailable];
+        return;
+    }
+
+    Class capsuleControllerClass = NSClassFromString(@"DIRootListController");
+    if (!RTIsPSListControllerSubclass(capsuleControllerClass) || !self.navigationController) {
+        [self rtShowTimeCapsuleUnavailable];
+        return;
+    }
+    // A same-named class from another loaded preference bundle is not the donor.
+    NSBundle *controllerBundle = [NSBundle bundleForClass:capsuleControllerClass];
+    if (![controllerBundle.bundleURL.URLByStandardizingPath
+            isEqual:capsuleBundle.bundleURL.URLByStandardizingPath]) {
+        [self rtShowTimeCapsuleUnavailable];
+        return;
+    }
+    UIViewController *capsuleController = [[capsuleControllerClass alloc] init];
+    if (![capsuleController isKindOfClass:UIViewController.class]) {
+        [self rtShowTimeCapsuleUnavailable];
+        return;
+    }
+    [self.navigationController pushViewController:capsuleController animated:YES];
 }
 @end

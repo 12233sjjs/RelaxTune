@@ -2,7 +2,7 @@ name: Build and package
 
 on:
   push:
-    branches: [main, codex/relaxtune-0.5.1-promotion120-20261126]
+    branches: [main, codex/relaxtune-0.5.1-promotion120-20261126, codex/relaxtune-0.5.2-time-capsule-20261128]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +18,16 @@ jobs:
           mkdir -p work
           cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -Isrc tests/test_core.c src/DSP.c -lm -o work/test_core
           ./work/test_core
+      - name: Test battery-temperature numeric policy with sanitizers
+        run: |
+          for opt in 0 2; do
+            cc -std=c11 -Wall -Wextra -Werror -O$opt -fsanitize=address,undefined -Isrc \
+              tests/test_battery_temperature.c -lm -o work/test_battery_temperature_$opt
+            ./work/test_battery_temperature_$opt
+            cc -std=c11 -Wall -Wextra -Werror -O$opt -fsanitize=address,undefined -Isrc \
+              tests/test_time_capsule_policy.c -lm -o work/test_time_capsule_policy_$opt
+            ./work/test_time_capsule_policy_$opt
+          done
       - name: Validate property lists and settings
         run: |
           python3 tests/test_preferences.py
@@ -58,6 +68,18 @@ jobs:
           ./work/test_app_policy
           clang -std=c11 -Wall -Wextra -Werror -Isrc tests/test_network.c -o work/test_network
           ./work/test_network
+      - name: Test actual capsule companion with mocked UIKit boundaries
+        run: sh tests/test_time_capsule_macos.sh
+      - name: Test battery-temperature provider with mocked IOKit
+        run: |
+          for opt in 0 2; do
+            clang -fobjc-arc -Wall -Wextra -Werror -O$opt \
+              -DRT_BATTERY_TEMPERATURE_TESTING -Isrc \
+              src/RTBatteryTemperature.m tests/test_battery_temperature.m \
+              -framework Foundation -framework CoreFoundation \
+              -o work/test_battery_temperature_provider_$opt
+            ./work/test_battery_temperature_provider_$opt
+          done
       - name: Install packaging tools and RootHide Theos
         run: |
           brew list ldid >/dev/null 2>&1 || brew install ldid
@@ -92,6 +114,7 @@ jobs:
           dpkg-deb -x packages/*.deb work/extracted
           python3 tests/test_preferences.py work/extracted
           python3 tests/test_promotion_adapter.py work/extracted
+          python3 tests/inspect_capsule_package.py packages/*.deb packages/PACKAGE-CHECK.json
           path="$(find work/extracted -name RelaxTune.dylib -print -quit)"
           test -n "$path"
           file "$path"

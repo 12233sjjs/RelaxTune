@@ -11,8 +11,8 @@ endif
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = RelaxTune
-RelaxTune_FILES = src/Tweak.x src/Animation.x src/Refresh.x src/Network.x src/Settings.m
-RelaxTune_FRAMEWORKS = UIKit QuartzCore Foundation
+RelaxTune_FILES = src/Tweak.x src/Animation.x src/Refresh.x src/Network.x src/Settings.m src/TimeCapsuleBattery.x src/RTBatteryTemperature.m
+RelaxTune_FRAMEWORKS = UIKit QuartzCore Foundation CoreFoundation
 RelaxTune_CFLAGS = -Isrc
 RelaxTune_OBJCFLAGS = -fobjc-arc
 
